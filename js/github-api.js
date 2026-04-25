@@ -23,7 +23,7 @@ window.GitHubAPI = (() => {
 
   const fetchAssetTree = async (repo, branch = 'main') => {
     const url = `${BASE}/repos/${repo}/git/trees/${branch}?recursive=1`;
-    const res = await fetch(url, { headers: authHeaders('') });
+    const res = await fetch(url, { headers: authHeaders(''), cache: 'no-store' });
     await throwIfError(res, `fetchAssetTree(${repo}@${branch})`);
     const data = await res.json();
     return (data.tree || []).filter(

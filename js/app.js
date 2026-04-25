@@ -427,8 +427,19 @@ window.App = (() => {
   };
 
   const init = () => {
-    // 1. EventBus is already initialized above
-    // 2. AppState
+    // Unregister any service workers (e.g. from Godot dosa export) that intercept
+    // cross-origin fetches and return "Content unavailable. Resource was not cached"
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(regs => {
+        if (regs.length > 0) {
+          Promise.all(regs.map(r => r.unregister())).then(() => {
+            console.log(`[SW] Unregistered ${regs.length} service worker(s). Reloading…`);
+            location.reload();
+          });
+        }
+      });
+    }
+
     AppState.init();
 
     // 패널 초기 렌더 (에셋 없는 상태)
