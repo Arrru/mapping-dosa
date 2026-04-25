@@ -135,7 +135,8 @@ window.TimelinePanel = (() => {
     AppState.scene.events.splice(index, 1);
     if (AppState.ui.selectedEventIndex === index) {
       AppState.ui.selectedEventIndex = null;
-      document.getElementById('event-editor-modal').style.display = 'none';
+      const editorContent = document.getElementById('event-editor-content');
+      if (editorContent) editorContent.innerHTML = '<div class="event-editor-placeholder"><p>타임라인에서 이벤트를<br/>선택하면 여기서 편집할 수 있습니다</p></div>';
     } else if (AppState.ui.selectedEventIndex > index) {
       AppState.ui.selectedEventIndex -= 1;
     }
@@ -238,8 +239,8 @@ window.TimelinePanel = (() => {
     const event = AppState.scene.events[index];
     if (!event) return;
 
-    const modal = document.getElementById('event-editor-modal');
     const content = document.getElementById('event-editor-content');
+    if (!content) return;
     const cfg = EVENT_CONFIGS[event.type] || { label: event.type, icon: '?', color: '#718096' };
 
     const debouncedSave = Utils.debounce(() => saveEventFromEditor(index), 300);
@@ -276,7 +277,6 @@ window.TimelinePanel = (() => {
     }
 
     content.innerHTML = html;
-    modal.style.display = '';
 
     // Wire up auto-save
     content.querySelectorAll('input, textarea, select').forEach((el) => {

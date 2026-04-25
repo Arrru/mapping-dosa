@@ -24,15 +24,7 @@ window.PreviewPanel = (() => {
 
     container.addEventListener('drop', (e) => {
       e.preventDefault();
-      const bg = document.getElementById('preview-background');
-      const bgRect = bg.getBoundingClientRect();
-      // Drop on background area (below characters, or empty zone)
-      const charsRect = charsArea.getBoundingClientRect();
-      if (e.clientY < charsRect.top || e.clientY > charsRect.bottom) {
-        handleDrop(e, 'background');
-      } else {
-        handleDrop(e, 'character');
-      }
+      handleDrop(e);
     });
 
     charsArea.addEventListener('dragover', (e) => {
@@ -42,7 +34,7 @@ window.PreviewPanel = (() => {
 
     charsArea.addEventListener('drop', (e) => {
       e.preventDefault();
-      handleDrop(e, 'character');
+      handleDrop(e);
     });
 
     ['left', 'center', 'right'].forEach((pos) => {
@@ -149,7 +141,7 @@ window.PreviewPanel = (() => {
     }
   }
 
-  function handleDrop(e, targetArea) {
+  function handleDrop(e) {
     let asset;
     try {
       asset = JSON.parse(e.dataTransfer.getData('asset'));
@@ -158,11 +150,11 @@ window.PreviewPanel = (() => {
     }
     if (!asset) return;
 
-    if (targetArea === 'background' && asset.type === 'background') {
+    if (asset.type === 'background') {
       applyBackground(asset);
       EventBus.emit('preview:updated');
       EventBus.emit('timeline:updated');
-    } else if (targetArea === 'character') {
+    } else if (asset.type === 'character') {
       const charsArea = document.getElementById('preview-characters');
       const rect = charsArea.getBoundingClientRect();
       const relX = e.clientX - rect.left;
@@ -170,6 +162,17 @@ window.PreviewPanel = (() => {
       const position = relX < third ? 'left' : relX < third * 2 ? 'center' : 'right';
       applyCharacter(asset, position);
       EventBus.emit('preview:updated');
+      EventBus.emit('timeline:updated');
+    } else if (asset.type === 'bgm' || asset.type === 'sfx') {
+      AppState.saveToHistory();
+      AppState.scene.events.push({
+        id: Utils.generateId(),
+        type: asset.type === 'bgm' ? 'bgm_play' : 'sfx_play',
+        asset_id: asset.id,
+        path: asset.resPath || '',
+        loop: asset.type === 'bgm',
+      });
+      AppState.autosave();
       EventBus.emit('timeline:updated');
     }
   }
