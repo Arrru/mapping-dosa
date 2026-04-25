@@ -472,6 +472,9 @@ window.App = (() => {
     checkAutosave();
 
     updateUndoRedoButtons();
+
+    // Auto-load assets on startup
+    refreshAssets();
   };
 
   document.addEventListener('DOMContentLoaded', init);
