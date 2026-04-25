@@ -612,6 +612,9 @@ img {
   color: var(--text-muted);
   font-size: 12px;
 }
+.asset-loading[hidden] {
+  display: none;
+}
 
 /* Empty state */
 .asset-grid-empty {
