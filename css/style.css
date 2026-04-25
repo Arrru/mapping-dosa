@@ -616,6 +616,10 @@ img {
   display: none;
 }
 
+.asset-list__error {
+  color: var(--error);
+}
+
 /* Empty state */
 .asset-grid-empty {
   grid-column: 1 / -1;

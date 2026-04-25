@@ -169,17 +169,16 @@ window.App = (() => {
   };
 
   const showToast = (message, type = 'success', duration = 3000) => {
-    const existing = document.querySelector('.toast');
-    if (existing) existing.remove();
+    const container = document.querySelector('#toast-container') || document.body;
+    document.querySelectorAll('.toast').forEach(t => t.remove());
 
     const toast = document.createElement('div');
     toast.className = `toast toast--${type}`;
     toast.textContent = message;
-    document.body.appendChild(toast);
+    container.appendChild(toast);
 
-    requestAnimationFrame(() => toast.classList.add('toast--visible'));
     setTimeout(() => {
-      toast.classList.remove('toast--visible');
+      toast.classList.add('toast--out');
       setTimeout(() => toast.remove(), 300);
     }, duration);
   };
@@ -363,21 +362,24 @@ window.App = (() => {
 
   const refreshAssets = () => {
     const btn = document.querySelector('#btn-refresh-assets');
+    const grid = document.querySelector('#asset-grid');
+
     if (btn) btn.classList.add('btn-refresh-assets--spinning');
-    showToast('에셋 불러오는 중...', 'success', 60000);
+    if (grid) grid.innerHTML = '<div class="asset-list__empty">불러오는 중...</div>';
 
     AssetManager.loadFromGitHub(AppState.config.sourceRepo)
       .then(() => {
         if (btn) btn.classList.remove('btn-refresh-assets--spinning');
-        document.querySelectorAll('.toast').forEach(t => t.remove());
+        const total = AppState.assets.all.length;
         AssetPanelUI.render();
         EventBus.emit('assets:loaded', AppState.assets);
-        showToast('에셋이 최신화되었습니다.', 'success');
+        showToast(`에셋 ${total}개 로드 완료`, 'success');
       })
       .catch((err) => {
         if (btn) btn.classList.remove('btn-refresh-assets--spinning');
-        document.querySelectorAll('.toast').forEach(t => t.remove());
-        showToast(`에셋 로드 실패: ${err.message}`, 'error', 6000);
+        if (grid) grid.innerHTML = `<div class="asset-list__empty asset-list__error">로드 실패: ${err.message}</div>`;
+        showToast(`에셋 로드 실패: ${err.message}`, 'error', 8000);
+        console.error('[refreshAssets]', err);
       });
   };
 
