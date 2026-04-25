@@ -361,12 +361,33 @@ window.App = (() => {
     });
   };
 
+  const refreshAssets = () => {
+    const btn = document.querySelector('#btn-refresh-assets');
+    if (btn) btn.classList.add('btn-refresh-assets--spinning');
+    showToast('에셋 불러오는 중...', 'success', 60000);
+
+    AssetManager.loadFromGitHub(AppState.config.sourceRepo)
+      .then(() => {
+        if (btn) btn.classList.remove('btn-refresh-assets--spinning');
+        document.querySelectorAll('.toast').forEach(t => t.remove());
+        AssetPanelUI.render();
+        EventBus.emit('assets:loaded', AppState.assets);
+        showToast('에셋이 최신화되었습니다.', 'success');
+      })
+      .catch((err) => {
+        if (btn) btn.classList.remove('btn-refresh-assets--spinning');
+        document.querySelectorAll('.toast').forEach(t => t.remove());
+        showToast(`에셋 로드 실패: ${err.message}`, 'error', 6000);
+      });
+  };
+
   const setupButtons = () => {
     const on = (sel, event, fn) => {
       const el = document.querySelector(sel);
       if (el) el.addEventListener(event, fn);
     };
 
+    on('#btn-refresh-assets', 'click', () => refreshAssets());
     on('#btn-new', 'click', () => newScene());
     on('#btn-save', 'click', () => saveToLocal());
     on('#btn-export-json', 'click', () => Exporter.downloadSceneJSON());
@@ -407,20 +428,9 @@ window.App = (() => {
     // 1. EventBus is already initialized above
     // 2. AppState
     AppState.init();
-    // 3. Loading overlay
-    showLoading('에셋을 불러오는 중...');
 
-    // 4. Load assets
-    AssetManager.loadFromGitHub(AppState.config.sourceRepo)
-      .then(() => {
-        hideLoading();
-        AssetPanelUI.render();
-        EventBus.emit('assets:loaded', AppState.assets);
-      })
-      .catch((err) => {
-        hideLoading();
-        showToast(`에셋 로드 실패: ${err.message}. 잠시 후 다시 시도하세요.`, 'error', 6000);
-      });
+    // 패널 초기 렌더 (에셋 없는 상태)
+    AssetPanelUI.render();
 
     // 5-6. Panel init
     if (window.PreviewPanel) PreviewPanel.init();
