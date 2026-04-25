@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VN Scene Mapper</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Noto+Sans+KR:wght@300;400;500;600&display=swap" rel="stylesheet" />
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════
+       LOADING OVERLAY
+  ═══════════════════════════════════════════ -->
+  <div id="loading-overlay" class="loading-overlay" hidden>
+    <div class="loading-spinner"></div>
+    <p id="loading-message" class="loading-message">불러오는 중...</p>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       TOAST CONTAINER
+  ═══════════════════════════════════════════ -->
+  <div id="toast-container" class="toast-container" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- ═══════════════════════════════════════════
+       SETTINGS MODAL
+  ═══════════════════════════════════════════ -->
+  <div id="settings-modal" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="settings-modal-title">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="settings-modal-title" class="modal-title">설정</h2>
+        <button id="btn-settings-close" class="btn btn-ghost btn-icon" aria-label="닫기">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M2 2L14 14M14 2L2 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="settings-github-token">GitHub 토큰</label>
+          <input
+            id="settings-github-token"
+            class="form-input"
+            type="password"
+            placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+            autocomplete="off"
+          />
+          <p class="form-hint">repo 스코프의 Personal Access Token이 필요합니다.</p>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="settings-source-repo">소스 저장소 (에셋 원본)</label>
+          <input
+            id="settings-source-repo"
+            class="form-input form-input--mono"
+            type="text"
+            readonly
+            placeholder="owner/repo"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="settings-target-repo">대상 저장소 (저장 위치)</label>
+          <input
+            id="settings-target-repo"
+            class="form-input form-input--mono"
+            type="text"
+            placeholder="owner/repo"
+          />
+        </div>
+        <div class="form-group form-group--row">
+          <button id="btn-test-token" class="btn btn-secondary">토큰 테스트</button>
+          <span id="token-test-result" class="token-test-result"></span>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button id="btn-settings-save" class="btn btn-primary">저장</button>
+        <button id="btn-settings-close-footer" class="btn btn-ghost">취소</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       EVENT EDITOR MODAL
+  ═══════════════════════════════════════════ -->
+  <div id="event-editor-modal" class="modal-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="event-editor-modal-title">
+    <div class="modal-card modal-card--wide">
+      <div class="modal-header">
+        <h2 id="event-editor-modal-title" class="modal-title">이벤트 편집</h2>
+        <button id="btn-event-editor-close" class="btn btn-ghost btn-icon" aria-label="닫기">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M2 2L14 14M14 2L2 14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+          </svg>
+        </button>
+      </div>
+      <div id="event-editor-content" class="modal-body event-editor-body">
+        <!-- Dynamic content injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════
+       APP WRAPPER
+  ═══════════════════════════════════════════ -->
+  <div class="app-wrapper">
+
+    <!-- ─── HEADER ──────────────────────────────── -->
+    <header class="app-header" role="banner">
+      <div class="header-brand">
+        <svg class="brand-icon" width="22" height="22" viewBox="0 0 22 22" fill="none" aria-hidden="true">
+          <rect x="1" y="1" width="20" height="20" rx="4" stroke="var(--accent)" stroke-width="1.5"/>
+          <rect x="4" y="14" width="3" height="5" fill="var(--accent)" rx="1"/>
+          <rect x="9.5" y="8" width="3" height="11" fill="var(--accent)" rx="1" opacity="0.7"/>
+          <rect x="15" y="11" width="3" height="8" fill="var(--accent)" rx="1" opacity="0.5"/>
+          <path d="M4 10L7.5 6L11 9L15 4L19 7" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="brand-name">VN Scene Mapper</span>
+      </div>
+
+      <div class="header-scene-title">
+        <input
+          id="scene-title-input"
+          class="scene-title-input"
+          type="text"
+          value="새 장면"
+          aria-label="장면 제목"
+          spellcheck="false"
+        />
+      </div>
+
+      <nav class="header-toolbar" role="toolbar" aria-label="편집 도구">
+        <div class="toolbar-group">
+          <button id="btn-new" class="btn btn-ghost" title="새 장면 (Ctrl+N)">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M2 2h6l4 4v6a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M8 2v4h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+              <path d="M7 7v4M5 9h4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            새 장면
+          </button>
+          <button id="btn-save" class="btn btn-ghost" title="저장 (Ctrl+S)">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M2 2h7.5L12 4.5V12a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.3"/>
+              <rect x="4" y="2" width="5" height="3.5" rx="0.5" stroke="currentColor" stroke-width="1.3"/>
+              <rect x="3.5" y="7" width="7" height="5" rx="0.5" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M5.5 9.5h3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            저장
+          </button>
+          <label id="btn-load" class="btn btn-ghost" title="불러오기 (Ctrl+O)" role="button" tabindex="0">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M1 4a1 1 0 0 1 1-1h3l1.5 2H12a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V4z" stroke="currentColor" stroke-width="1.3"/>
+            </svg>
+            불러오기
+            <input id="file-input" type="file" accept=".json" hidden aria-label="JSON 파일 선택" />
+          </label>
+        </div>
+
+        <div class="toolbar-divider" role="separator"></div>
+
+        <div class="toolbar-group">
+          <button id="btn-export-json" class="btn btn-secondary" title="JSON 내보내기">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path d="M7 1v8M4 6l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M2 10v1a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            JSON 내보내기
+          </button>
+          <button id="btn-push-github" class="btn btn-primary" title="GitHub 푸시">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M5.5 4.5c0-1 1.5-1.5 2 0 .5 1.5-.5 2-1 2.5-.5.5-1 1-1 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" fill="none"/>
+              <circle cx="5.5" cy="9.5" r="0.5" fill="currentColor"/>
+            </svg>
+            GitHub 푸시
+          </button>
+        </div>
+
+        <div class="toolbar-divider" role="separator"></div>
+
+        <div class="toolbar-group">
+          <button id="btn-undo" class="btn btn-ghost btn-icon" title="실행 취소 (Ctrl+Z)" disabled aria-label="실행 취소">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+              <path d="M3 7A5 5 0 1 1 4.5 11M3 7V3M3 7H7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button id="btn-redo" class="btn btn-ghost btn-icon" title="다시 실행 (Ctrl+Y)" disabled aria-label="다시 실행">
+            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden="true">
+              <path d="M12 7A5 5 0 1 0 10.5 11M12 7V3M12 7H8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
+          <button id="btn-settings" class="btn btn-ghost btn-icon" title="설정" aria-label="설정">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+              <circle cx="8" cy="8" r="2.5" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M8 1.5v1M8 13.5v1M1.5 8h1M13.5 8h1M3.4 3.4l.7.7M11.9 11.9l.7.7M11.9 4.1l-.7.7M4.1 11.9l-.7.7" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </div>
+      </nav>
+    </header>
+
+    <!-- ─── MAIN LAYOUT ──────────────────────────── -->
+    <main class="app-main" role="main">
+
+      <!-- ─── ASSET PANEL (LEFT) ───────────────── -->
+      <aside id="asset-panel" class="panel panel--left" aria-label="에셋 패널">
+        <div class="panel-section panel-section--search">
+          <div class="search-wrap">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <circle cx="6" cy="6" r="4" stroke="currentColor" stroke-width="1.3"/>
+              <path d="M9.5 9.5L12 12" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+            </svg>
+            <input
+              id="asset-search"
+              class="search-input"
+              type="search"
+              placeholder="에셋 검색..."
+              aria-label="에셋 검색"
+            />
+          </div>
+        </div>
+
+        <div class="panel-section panel-section--tabs" role="tablist" aria-label="에셋 카테고리">
+          <button id="tab-backgrounds" class="tab-btn tab-btn--active" role="tab" aria-selected="true" aria-controls="asset-grid" data-tab="backgrounds">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <rect x="1" y="1" width="11" height="11" rx="2" stroke="currentColor" stroke-width="1.2"/>
+              <path d="M1 9l3-3 3 3 2-2 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="4" cy="4.5" r="1" fill="currentColor"/>
+            </svg>
+            배경
+          </button>
+          <button id="tab-characters" class="tab-btn" role="tab" aria-selected="false" aria-controls="asset-grid" data-tab="characters">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <circle cx="6.5" cy="4" r="2.5" stroke="currentColor" stroke-width="1.2"/>
+              <path d="M1.5 12c0-2.76 2.24-5 5-5s5 2.24 5 5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+            캐릭터
+          </button>
+          <button id="tab-bgm" class="tab-btn" role="tab" aria-selected="false" aria-controls="asset-grid" data-tab="bgm">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <path d="M5 10V3l7-1.5V9" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="3.5" cy="10" r="1.5" stroke="currentColor" stroke-width="1.2"/>
+              <circle cx="10.5" cy="9" r="1.5" stroke="currentColor" stroke-width="1.2"/>
+            </svg>
+            BGM
+          </button>
+          <button id="tab-sfx" class="tab-btn" role="tab" aria-selected="false" aria-controls="asset-grid" data-tab="sfx">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <path d="M6 3v7M4 4.5v4M2 5.5v2M8 4.5v4M10 5.5v2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+            </svg>
+            SFX
+          </button>
+          <button id="tab-ui" class="tab-btn" role="tab" aria-selected="false" aria-controls="asset-grid" data-tab="ui">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <rect x="1" y="1" width="11" height="7" rx="1.5" stroke="currentColor" stroke-width="1.2"/>
+              <rect x="1" y="10" width="5" height="2" rx="1" stroke="currentColor" stroke-width="1.2"/>
+              <rect x="7" y="10" width="5" height="2" rx="1" stroke="currentColor" stroke-width="1.2"/>
+            </svg>
+            UI
+          </button>
+          <button id="tab-recent" class="tab-btn" role="tab" aria-selected="false" aria-controls="asset-grid" data-tab="recent">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <circle cx="6.5" cy="6.5" r="5" stroke="currentColor" stroke-width="1.2"/>
+              <path d="M6.5 3.5v3l2 1.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            최근
+          </button>
+        </div>
+
+        <div class="panel-section panel-section--asset-grid">
+          <div id="asset-loading" class="asset-loading" hidden aria-label="에셋 불러오는 중">
+            <div class="loading-spinner loading-spinner--sm"></div>
+            <span>에셋 불러오는 중...</span>
+          </div>
+          <div id="asset-grid" class="asset-grid" role="list" aria-label="에셋 목록">
+            <!-- Asset cards injected by JS -->
+            <div class="asset-grid-empty">
+              <svg width="32" height="32" viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                <rect x="4" y="4" width="24" height="24" rx="4" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+                <path d="M12 16h8M16 12v8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.5"/>
+              </svg>
+              <p>에셋을 불러오려면<br/>GitHub 저장소를 설정하세요</p>
+              <button class="btn btn-secondary btn-sm" id="btn-load-assets">에셋 불러오기</button>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- ─── PREVIEW PANEL (CENTER) ──────────────── -->
+      <section class="panel panel--center" aria-label="장면 미리보기">
+        <div class="preview-wrapper">
+          <div id="preview-container" class="preview-container" role="img" aria-label="장면 미리보기">
+
+            <!-- Drop hint overlay -->
+            <div id="drop-hint" class="drop-hint" aria-hidden="true">
+              <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+                <rect x="2" y="2" width="32" height="32" rx="6" stroke="currentColor" stroke-width="2" stroke-dasharray="6 3"/>
+                <path d="M18 10v16M10 18h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+              </svg>
+              <span>여기에 드롭하세요</span>
+            </div>
+
+            <!-- Background layer -->
+            <div id="preview-background" class="preview-background" data-empty aria-label="배경">
+              배경 이미지를 드래그하세요
+            </div>
+
+            <!-- Character layer -->
+            <div id="preview-characters" class="preview-characters" aria-label="캐릭터">
+              <div id="char-left" class="char-slot char-slot--left" data-empty role="button" tabindex="0" aria-label="왼쪽 캐릭터 슬롯">
+                <span class="char-slot-placeholder">좌</span>
+              </div>
+              <div id="char-center" class="char-slot char-slot--center" data-empty role="button" tabindex="0" aria-label="가운데 캐릭터 슬롯">
+                <span class="char-slot-placeholder">중</span>
+              </div>
+              <div id="char-right" class="char-slot char-slot--right" data-empty role="button" tabindex="0" aria-label="오른쪽 캐릭터 슬롯">
+                <span class="char-slot-placeholder">우</span>
+              </div>
+            </div>
+
+            <!-- Dialogue box -->
+            <div id="preview-dialogue-box" class="preview-dialogue-box" style="display:none" aria-live="polite">
+              <div class="dialogue-inner">
+                <div id="preview-speaker-name" class="preview-speaker-name"></div>
+                <p id="preview-dialogue-text" class="preview-dialogue-text"></p>
+                <div id="preview-choices" class="preview-choices" style="display:none"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Preview meta bar -->
+        <div class="preview-meta-bar">
+          <span class="preview-meta-label">16:9 미리보기</span>
+          <span class="preview-meta-scene" id="preview-meta-scene-id"></span>
+        </div>
+      </section>
+
+      <!-- ─── TIMELINE PANEL (RIGHT) ──────────────── -->
+      <aside id="timeline-panel" class="panel panel--right" aria-label="타임라인 패널">
+
+        <!-- Timeline header -->
+        <div class="timeline-header">
+          <div class="timeline-title-row">
+            <h2 class="panel-title">타임라인</h2>
+            <span id="timeline-event-count" class="timeline-count">0 이벤트</span>
+          </div>
+          <button id="btn-timeline-add" class="btn btn-primary btn-sm btn-full" aria-label="이벤트 추가">
+            <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden="true">
+              <path d="M6.5 1.5v10M1.5 6.5h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+            </svg>
+            이벤트 추가
+          </button>
+        </div>
+
+        <!-- Timeline list -->
+        <div class="timeline-list-wrap">
+          <ol id="timeline-list" class="timeline-list" aria-label="이벤트 목록">
+            <!-- Timeline event items injected by JS -->
+            <li class="timeline-empty" id="timeline-empty-state">
+              <svg width="28" height="28" viewBox="0 0 28 28" fill="none" aria-hidden="true">
+                <rect x="3" y="3" width="22" height="22" rx="4" stroke="currentColor" stroke-width="1.3" opacity="0.3"/>
+                <path d="M14 9v10M9 14h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" opacity="0.4"/>
+              </svg>
+              <p>이벤트가 없습니다<br/><small>위 버튼으로 추가하세요</small></p>
+            </li>
+          </ol>
+        </div>
+
+        <!-- Event editor section -->
+        <div id="event-editor-section" class="event-editor-section">
+          <div class="event-editor-header">
+            <h3 class="panel-title panel-title--sm">이벤트 편집</h3>
+          </div>
+          <div id="event-editor-content" class="event-editor-content">
+            <div class="event-editor-placeholder">
+              <p>타임라인에서 이벤트를<br/>선택하면 여기서 편집할 수 있습니다</p>
+            </div>
+          </div>
+        </div>
+
+      </aside>
+
+    </main><!-- /.app-main -->
+
+    <!-- Mobile panel toggle bar (shown at narrow viewports) -->
+    <div class="mobile-panel-bar" role="toolbar" aria-label="패널 전환">
+      <button class="mobile-tab-btn mobile-tab-btn--active" data-panel="assets">에셋</button>
+      <button class="mobile-tab-btn" data-panel="preview">미리보기</button>
+      <button class="mobile-tab-btn" data-panel="timeline">타임라인</button>
+    </div>
+
+  </div><!-- /.app-wrapper -->
+
+  <!-- ─── SCRIPTS ──────────────────────────────── -->
+  <script src="js/utils.js"></script>
+  <script src="js/state.js"></script>
+  <script src="js/github-api.js"></script>
+  <script src="js/asset-manager.js"></script>
+  <script src="js/preview.js"></script>
+  <script src="js/timeline.js"></script>
+  <script src="js/exporter.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>
