@@ -264,6 +264,7 @@ window.App = (() => {
     AssetPanelUI.render();
     updateUndoRedoButtons();
     const t = document.querySelector('#scene-title-input'); if (t) t.value = AppState.scene.title;
+    const sid = document.querySelector('#scene-id-input'); if (sid) sid.value = AppState.scene.id;
   };
 
   const showToast = (message, type = 'success', duration = 3000) => {
@@ -639,6 +640,16 @@ window.App = (() => {
       titleInput.value = AppState.scene.title;
       titleInput.addEventListener('input', Utils.debounce((e) => {
         AppState.scene.title = e.target.value || '새 장면';
+        AppState.autosave();
+      }, 300));
+    }
+
+    const sceneIdInput = document.querySelector('#scene-id-input');
+    if (sceneIdInput) {
+      sceneIdInput.value = AppState.scene.id;
+      sceneIdInput.addEventListener('input', Utils.debounce((e) => {
+        const val = e.target.value.trim().replace(/\s+/g, '_');
+        if (val) AppState.scene.id = val;
         AppState.autosave();
       }, 300));
     }
