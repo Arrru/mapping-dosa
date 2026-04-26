@@ -128,10 +128,11 @@ window.AssetPanelUI = (() => {
       const idx = arr.indexOf(asset);
       if (idx !== -1) arr.splice(idx, 1);
     });
-    asset.type = newType;
-    asset.id = newType + '_' + asset.filename;
+    asset.type = newType === 'ui' ? 'image' : newType;
+    asset.id = asset.type + '_' + asset.filename;
     if (newType === 'character') AppState.assets.characters.push(asset);
-    else AppState.assets.backgrounds.push(asset);
+    else if (newType === 'background') AppState.assets.backgrounds.push(asset);
+    else AppState.assets.ui.push(asset);
   };
 
   const applyStoredReclassifications = () => {
@@ -146,11 +147,15 @@ window.AssetPanelUI = (() => {
   const reclassifyAsset = (asset, newType) => {
     let stored;
     try { stored = JSON.parse(localStorage.getItem(RECLASSIFY_LS_KEY) || '{}'); } catch (_) { stored = {}; }
-    stored[asset.path] = newType;
+    if (newType === 'ui') {
+      delete stored[asset.path];
+    } else {
+      stored[asset.path] = newType;
+    }
     localStorage.setItem(RECLASSIFY_LS_KEY, JSON.stringify(stored));
     applyReclassification(asset, newType);
-    const labelKo = newType === 'character' ? '캐릭터' : '배경';
-    if (window.App) App.showToast(`${asset.filename} → ${labelKo} 탭으로 이동했습니다.`, 'success');
+    const labels = { character: '캐릭터', background: '배경', ui: 'UI' };
+    if (window.App) App.showToast(`${asset.filename} → ${labels[newType] || newType} 탭으로 이동했습니다.`, 'success');
     render();
   };
 
@@ -160,28 +165,58 @@ window.AssetPanelUI = (() => {
     container.innerHTML = '';
 
     if (type === 'reclassify') {
-      const imageAssets = AppState.assets.ui.filter(a => Utils.isImageFile(a.path));
-      if (imageAssets.length === 0) {
-        container.innerHTML = '<div class="asset-list__empty">UI 카테고리에 이동 가능한 이미지가 없습니다.</div>';
+      const allImages = [
+        ...AppState.assets.backgrounds,
+        ...AppState.assets.characters,
+        ...AppState.assets.ui.filter(a => Utils.isImageFile(a.path)),
+      ];
+      if (allImages.length === 0) {
+        container.innerHTML = '<div class="asset-list__empty">이미지 에셋이 없습니다.</div>';
         return;
       }
-      for (const asset of imageAssets) {
-        const card = createImageCard(asset);
-        const btnRow = document.createElement('div');
-        btnRow.style.cssText = 'display:flex;gap:4px;padding:4px 6px 6px;';
-        const charBtn = document.createElement('button');
-        charBtn.textContent = '캐릭터로';
-        charBtn.style.cssText = 'flex:1;padding:3px 4px;background:#ed8936;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:10px;';
-        charBtn.addEventListener('click', (e) => { e.stopPropagation(); reclassifyAsset(asset, 'character'); });
-        const bgBtn = document.createElement('button');
-        bgBtn.textContent = '배경으로';
-        bgBtn.style.cssText = 'flex:1;padding:3px 4px;background:#4a90d9;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:10px;';
-        bgBtn.addEventListener('click', (e) => { e.stopPropagation(); reclassifyAsset(asset, 'background'); });
-        btnRow.appendChild(charBtn);
-        btnRow.appendChild(bgBtn);
-        card.appendChild(btnRow);
-        attachCardListeners(card, asset);
-        container.appendChild(card);
+      container.style.cssText = 'overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:4px;';
+      const typeLabels = { character: '캐릭터', background: '배경', image: 'UI', ui: 'UI' };
+      const typeColors = { character: '#ed8936', background: '#4a90d9', ui: '#718096', image: '#718096' };
+      for (const asset of allImages) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px;border-radius:4px;background:#1a202c;';
+
+        const img = document.createElement('img');
+        img.src = asset.rawUrl;
+        img.loading = 'lazy';
+        img.style.cssText = 'width:38px;height:38px;object-fit:cover;border-radius:3px;flex-shrink:0;background:#2d3748;';
+
+        const info = document.createElement('div');
+        info.style.cssText = 'flex:1;min-width:0;';
+        const nameEl = document.createElement('div');
+        nameEl.textContent = asset.filename;
+        nameEl.style.cssText = 'font-size:11px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+        const typeEl = document.createElement('div');
+        typeEl.textContent = typeLabels[asset.type] || asset.type;
+        typeEl.style.cssText = `font-size:10px;color:${typeColors[asset.type] || '#718096'};margin-top:2px;`;
+        info.appendChild(nameEl);
+        info.appendChild(typeEl);
+
+        const btnGroup = document.createElement('div');
+        btnGroup.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
+
+        const isUi = asset.type === 'image' || asset.type === 'ui';
+        const makeBtn = (label, color, targetType) => {
+          const active = targetType === 'ui' ? isUi : asset.type === targetType;
+          const btn = document.createElement('button');
+          btn.textContent = label;
+          btn.style.cssText = `padding:3px 6px;background:${active ? color : 'transparent'};color:${active ? '#fff' : '#a0aec0'};border:1px solid ${active ? color : '#4a5568'};border-radius:3px;cursor:pointer;font-size:10px;`;
+          btn.addEventListener('click', (e) => { e.stopPropagation(); reclassifyAsset(asset, targetType); });
+          return btn;
+        };
+        btnGroup.appendChild(makeBtn('캐릭터', '#ed8936', 'character'));
+        btnGroup.appendChild(makeBtn('배경', '#4a90d9', 'background'));
+        btnGroup.appendChild(makeBtn('UI', '#718096', 'ui'));
+
+        row.appendChild(img);
+        row.appendChild(info);
+        row.appendChild(btnGroup);
+        container.appendChild(row);
       }
       return;
     }
