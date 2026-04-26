@@ -54,7 +54,7 @@ window.Exporter = (() => {
 
     const files = [
       {
-        path: `scenes/${sceneId}.json`,
+        path: `project/scenes/novel/${sceneId}.json`,
         content: sceneJson,
         message: `scene: update ${sceneId} (${now})`,
       },
@@ -67,7 +67,7 @@ window.Exporter = (() => {
 
     try {
       const results = await GitHubAPI.pushMultipleFiles(token, repo, files, AppState.config.branch);
-      const url = `https://github.com/${repo}/blob/${AppState.config.branch}/scenes/${sceneId}.json`;
+      const url = `https://github.com/${repo}/blob/${AppState.config.branch}/project/scenes/novel/${sceneId}.json`;
       if (window.App && App.showToast) {
         App.showToast(`GitHub에 저장되었습니다. ${url}`, 'success');
       }

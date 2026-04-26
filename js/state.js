@@ -20,7 +20,7 @@ window.AppState = (() => {
   const state = {
     config: {
       sourceRepo: 'Arrru/dosa',
-      targetRepo: 'Arrru/mapping-dosa',
+      targetRepo: 'Arrru/dosa',
       branch: 'main',
       githubToken: '',
     },

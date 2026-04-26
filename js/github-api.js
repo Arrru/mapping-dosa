@@ -91,7 +91,7 @@ window.GitHubAPI = (() => {
   };
 
   const listScenes = async (token, repo) => {
-    const res = await fetch(`${BASE}/repos/${repo}/contents/scenes`, {
+    const res = await fetch(`${BASE}/repos/${repo}/contents/project/scenes/novel`, {
       headers: authHeaders(token),
       cache: 'no-store',
     });
