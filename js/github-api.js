@@ -90,5 +90,25 @@ window.GitHubAPI = (() => {
     return out;
   };
 
-  return { fetchAssetTree, getRawUrl, pushFile, pushMultipleFiles, testToken };
+  const listScenes = async (token, repo) => {
+    const res = await fetch(`${BASE}/repos/${repo}/contents/scenes`, {
+      headers: authHeaders(token),
+      cache: 'no-store',
+    });
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data) ? data.filter(f => f.name.endsWith('.json')) : [];
+  };
+
+  const fetchFileContent = async (token, repo, path) => {
+    const res = await fetch(`${BASE}/repos/${repo}/contents/${path}`, {
+      headers: authHeaders(token),
+      cache: 'no-store',
+    });
+    await throwIfError(res, `fetchFileContent(${path})`);
+    const data = await res.json();
+    return atob(data.content.replace(/\n/g, ''));
+  };
+
+  return { fetchAssetTree, getRawUrl, pushFile, pushMultipleFiles, testToken, listScenes, fetchFileContent };
 })();

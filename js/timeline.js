@@ -365,6 +365,7 @@ window.TimelinePanel = (() => {
           <input type="text" name="choice_text_${i}" value="${escHtml(opt.text || '')}" placeholder="선택지 텍스트"
             style="width:100%;padding:5px 7px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:12px;box-sizing:border-box;margin-bottom:4px;">
           <input type="text" name="choice_next_${i}" value="${escHtml(opt.next_scene || '')}" placeholder="다음 장면 ID"
+            list="scene-id-datalist"
             style="width:100%;padding:5px 7px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:12px;box-sizing:border-box;">
         </div>
         <button class="remove-option-btn" data-index="${i}" style="padding:4px 8px;background:#e53e3e;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;flex-shrink:0;margin-top:2px;">×</button>

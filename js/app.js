@@ -344,6 +344,73 @@ window.App = (() => {
     }
   };
 
+  const updateSceneIdDatalist = () => {
+    const datalist = document.getElementById('scene-id-datalist');
+    if (!datalist) return;
+    datalist.innerHTML = (AppState.knownSceneIds || []).map(id => `<option value="${id}">`).join('');
+  };
+
+  const openSceneList = async () => {
+    const modal = document.getElementById('scene-list-modal');
+    const content = document.getElementById('scene-list-content');
+    if (!modal || !content) return;
+    modal.hidden = false;
+    content.innerHTML = '<div style="color:#a0aec0;text-align:center;padding:20px;">불러오는 중...</div>';
+    try {
+      const files = await GitHubAPI.listScenes(AppState.config.githubToken, AppState.config.targetRepo);
+      if (files.length === 0) {
+        content.innerHTML = '<div style="color:#a0aec0;text-align:center;padding:20px;">저장된 씬이 없습니다.</div>';
+        return;
+      }
+      content.innerHTML = '';
+      const list = document.createElement('div');
+      list.style.cssText = 'display:flex;flex-direction:column;gap:6px;padding:4px;';
+      files.forEach(file => {
+        const sceneId = file.name.replace('.json', '');
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1a202c;border-radius:4px;';
+        const idEl = document.createElement('div');
+        idEl.style.cssText = 'flex:1;font-size:13px;color:#e2e8f0;font-family:monospace;';
+        idEl.textContent = sceneId;
+        const loadBtn = document.createElement('button');
+        loadBtn.textContent = '불러오기';
+        loadBtn.style.cssText = 'padding:4px 12px;background:#4a90d9;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;';
+        loadBtn.addEventListener('click', async () => {
+          loadBtn.textContent = '...';
+          loadBtn.disabled = true;
+          try {
+            const json = await GitHubAPI.fetchFileContent(
+              AppState.config.githubToken,
+              AppState.config.targetRepo,
+              `scenes/${file.name}`
+            );
+            const result = Exporter.importSceneJSON(json);
+            if (result.success) {
+              modal.hidden = true;
+              fullRerender();
+              showToast(`씬 "${sceneId}"을 불러왔습니다.`, 'success');
+            } else {
+              showToast(result.error || '불러오기 실패', 'error');
+            }
+          } catch (err) {
+            showToast(`불러오기 실패: ${err.message}`, 'error');
+          } finally {
+            loadBtn.textContent = '불러오기';
+            loadBtn.disabled = false;
+          }
+        });
+        row.appendChild(idEl);
+        row.appendChild(loadBtn);
+        list.appendChild(row);
+      });
+      content.appendChild(list);
+      AppState.knownSceneIds = files.map(f => f.name.replace('.json', ''));
+      updateSceneIdDatalist();
+    } catch (err) {
+      content.innerHTML = `<div style="color:#fc8181;text-align:center;padding:20px;">오류: ${err.message}</div>`;
+    }
+  };
+
   const setupSettingsModal = () => {
     const modal = document.querySelector('#settings-modal');
     const tokenInput = document.querySelector('#settings-github-token');
@@ -468,6 +535,11 @@ window.App = (() => {
     AssetManager.loadFromGitHub(AppState.config.sourceRepo)
       .then(() => {
         AssetPanelUI.applyStoredReclassifications();
+        GitHubAPI.listScenes(AppState.config.githubToken, AppState.config.targetRepo)
+          .then(files => {
+            AppState.knownSceneIds = files.map(f => f.name.replace('.json', ''));
+            updateSceneIdDatalist();
+          }).catch(() => {});
         if (btn) btn.classList.remove('btn-refresh-assets--spinning');
         const total = AppState.assets.all.length;
         AssetPanelUI.render();
@@ -489,6 +561,11 @@ window.App = (() => {
     };
 
     on('#btn-refresh-assets', 'click', () => refreshAssets());
+    on('#btn-scene-list', 'click', () => openSceneList());
+    on('#btn-scene-list-close', 'click', () => {
+      const modal = document.getElementById('scene-list-modal');
+      if (modal) modal.hidden = true;
+    });
     on('#btn-reclassify', 'click', () => {
       AppState.ui.activeAssetTab = 'reclassify';
       AssetPanelUI.render();
