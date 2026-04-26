@@ -71,6 +71,7 @@ window.Exporter = (() => {
       if (window.App && App.showToast) {
         App.showToast(`GitHub에 저장되었습니다. ${url}`, 'success');
       }
+      await _triggerDosaBuild(token);
       return { success: true, urls: results.map(r => r.url) };
     } catch (err) {
       if (window.App && App.showToast) {
@@ -93,6 +94,28 @@ window.Exporter = (() => {
       if (window.App && App.hideLoading) App.hideLoading();
       if (window.App && App.showToast) App.showToast(`오류: ${err.message}`, 'error');
       return { success: false, urls: [] };
+    }
+  };
+
+  const _triggerDosaBuild = async (token) => {
+    try {
+      const res = await fetch('https://api.github.com/repos/Arrru/dosa/dispatches', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/vnd.github+json',
+          'Authorization': `Bearer ${token}`,
+          'X-GitHub-Api-Version': '2022-11-28',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ event_type: 'scenes-updated' }),
+      });
+      if (res.status === 204) {
+        if (window.App && App.showToast) App.showToast('dosa 빌드가 자동으로 시작되었습니다.', 'success');
+      } else {
+        console.warn('[Exporter] dosa 빌드 트리거 실패:', res.status);
+      }
+    } catch (err) {
+      console.warn('[Exporter] dosa 빌드 트리거 오류:', err.message);
     }
   };
 
