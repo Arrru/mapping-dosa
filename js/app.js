@@ -22,7 +22,7 @@ window.EventBus = (() => {
 })();
 
 window.AssetPanelUI = (() => {
-  const TABS = ['backgrounds', 'characters', 'bgm', 'sfx', 'reclassify', 'ui', 'recent'];
+  const TABS = ['backgrounds', 'characters', 'bgm', 'sfx', 'ui', 'recent'];
 
   const isAudio = (asset) => Utils.isSoundFile(asset.filename + '.mp3') || ['bgm', 'sfx'].includes(asset.type);
 
@@ -119,23 +119,36 @@ window.AssetPanelUI = (() => {
     });
   };
 
-  const reclassifyAsset = (asset, newType) => {
-    const uiIdx = AppState.assets.ui.indexOf(asset);
-    if (uiIdx !== -1) AppState.assets.ui.splice(uiIdx, 1);
+  const RECLASSIFY_LS_KEY = 'vn_reclassifications';
 
-    const oldId = asset.id;
+  const applyReclassification = (asset, newType) => {
+    ['ui', 'backgrounds', 'characters', 'bgm', 'sfx'].forEach(key => {
+      const arr = AppState.assets[key];
+      if (!arr) return;
+      const idx = arr.indexOf(asset);
+      if (idx !== -1) arr.splice(idx, 1);
+    });
     asset.type = newType;
     asset.id = newType + '_' + asset.filename;
+    if (newType === 'character') AppState.assets.characters.push(asset);
+    else AppState.assets.backgrounds.push(asset);
+  };
 
-    const allIdx = AppState.assets.all.findIndex(a => a.id === oldId);
-    if (allIdx !== -1) AppState.assets.all[allIdx] = asset;
-
-    if (newType === 'character') {
-      AppState.assets.characters.push(asset);
-    } else {
-      AppState.assets.backgrounds.push(asset);
+  const applyStoredReclassifications = () => {
+    let stored;
+    try { stored = JSON.parse(localStorage.getItem(RECLASSIFY_LS_KEY) || '{}'); } catch (_) { stored = {}; }
+    for (const [path, newType] of Object.entries(stored)) {
+      const asset = AppState.assets.all.find(a => a.path === path);
+      if (asset && asset.type !== newType) applyReclassification(asset, newType);
     }
+  };
 
+  const reclassifyAsset = (asset, newType) => {
+    let stored;
+    try { stored = JSON.parse(localStorage.getItem(RECLASSIFY_LS_KEY) || '{}'); } catch (_) { stored = {}; }
+    stored[asset.path] = newType;
+    localStorage.setItem(RECLASSIFY_LS_KEY, JSON.stringify(stored));
+    applyReclassification(asset, newType);
     const labelKo = newType === 'character' ? '캐릭터' : '배경';
     if (window.App) App.showToast(`${asset.filename} → ${labelKo} 탭으로 이동했습니다.`, 'success');
     render();
@@ -206,7 +219,7 @@ window.AssetPanelUI = (() => {
     renderTab(AppState.ui.activeAssetTab);
   };
 
-  return { render, renderTab };
+  return { render, renderTab, applyStoredReclassifications };
 })();
 
 window.App = (() => {
@@ -419,6 +432,7 @@ window.App = (() => {
 
     AssetManager.loadFromGitHub(AppState.config.sourceRepo)
       .then(() => {
+        AssetPanelUI.applyStoredReclassifications();
         if (btn) btn.classList.remove('btn-refresh-assets--spinning');
         const total = AppState.assets.all.length;
         AssetPanelUI.render();
@@ -440,6 +454,10 @@ window.App = (() => {
     };
 
     on('#btn-refresh-assets', 'click', () => refreshAssets());
+    on('#btn-reclassify', 'click', () => {
+      AppState.ui.activeAssetTab = 'reclassify';
+      AssetPanelUI.render();
+    });
     on('#btn-new', 'click', () => newScene());
     on('#btn-save', 'click', () => saveToLocal());
     on('#btn-export-json', 'click', () => Exporter.downloadSceneJSON());
