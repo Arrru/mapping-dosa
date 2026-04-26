@@ -107,7 +107,8 @@ window.GitHubAPI = (() => {
     });
     await throwIfError(res, `fetchFileContent(${path})`);
     const data = await res.json();
-    return atob(data.content.replace(/\n/g, ''));
+    const bytes = Uint8Array.from(atob(data.content.replace(/\n/g, '')), c => c.charCodeAt(0));
+    return new TextDecoder('utf-8').decode(bytes);
   };
 
   return { fetchAssetTree, getRawUrl, pushFile, pushMultipleFiles, testToken, listScenes, fetchFileContent };
