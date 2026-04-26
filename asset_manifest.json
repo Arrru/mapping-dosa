@@ -1,0 +1,135 @@
+{
+  "version": "1.0",
+  "generated_at": "2026-04-26T20:02:46.005Z",
+  "source_repo": "Arrru/dosa",
+  "assets": {
+    "backgrounds": [
+      {
+        "id": "background_library_east",
+        "filename": "library_east",
+        "path": "project/assets/backgrounds/library_east.svg",
+        "resPath": "res://project/assets/backgrounds/library_east.svg",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/project/assets/backgrounds/library_east.svg"
+      },
+      {
+        "id": "background_library_north",
+        "filename": "library_north",
+        "path": "project/assets/backgrounds/library_north.svg",
+        "resPath": "res://project/assets/backgrounds/library_north.svg",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/project/assets/backgrounds/library_north.svg"
+      },
+      {
+        "id": "background_library_south",
+        "filename": "library_south",
+        "path": "project/assets/backgrounds/library_south.svg",
+        "resPath": "res://project/assets/backgrounds/library_south.svg",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/project/assets/backgrounds/library_south.svg"
+      },
+      {
+        "id": "background_library_west",
+        "filename": "library_west",
+        "path": "project/assets/backgrounds/library_west.svg",
+        "resPath": "res://project/assets/backgrounds/library_west.svg",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/project/assets/backgrounds/library_west.svg"
+      }
+    ],
+    "characters": [
+      {
+        "id": "character_catalog_warden",
+        "filename": "catalog_warden",
+        "path": "project/assets/portraits/catalog_warden.svg",
+        "resPath": "res://project/assets/portraits/catalog_warden.svg",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/project/assets/portraits/catalog_warden.svg"
+      }
+    ],
+    "bgm": [
+      {
+        "id": "bgm_Morning",
+        "filename": "Morning",
+        "path": "assets/sounds/Morning.mp3",
+        "resPath": "res://assets/sounds/Morning.mp3",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/assets/sounds/Morning.mp3"
+      },
+      {
+        "id": "bgm_Sharara",
+        "filename": "Sharara",
+        "path": "assets/sounds/Sharara.mp3",
+        "resPath": "res://assets/sounds/Sharara.mp3",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/assets/sounds/Sharara.mp3"
+      },
+      {
+        "id": "bgm_bensound-sadday",
+        "filename": "bensound-sadday",
+        "path": "assets/sounds/bensound-sadday.mp3",
+        "resPath": "res://assets/sounds/bensound-sadday.mp3",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/assets/sounds/bensound-sadday.mp3"
+      }
+    ],
+    "sfx": [],
+    "ui": [
+      {
+        "id": "image_Dophamin_Lab",
+        "filename": "Dophamin_Lab",
+        "path": "assets/images/Dophamin_Lab.png",
+        "resPath": "res://assets/images/Dophamin_Lab.png",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/assets/images/Dophamin_Lab.png"
+      },
+      {
+        "id": "image_KakaoTalk_20251104_160521813",
+        "filename": "KakaoTalk_20251104_160521813",
+        "path": "assets/images/KakaoTalk_20251104_160521813.jpg",
+        "resPath": "res://assets/images/KakaoTalk_20251104_160521813.jpg",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/assets/images/KakaoTalk_20251104_160521813.jpg"
+      },
+      {
+        "id": "image_img",
+        "filename": "img",
+        "path": "assets/images/img.jpg",
+        "resPath": "res://assets/images/img.jpg",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/assets/images/img.jpg"
+      },
+      {
+        "id": "image_try_P",
+        "filename": "try_P",
+        "path": "assets/images/try_P.png",
+        "resPath": "res://assets/images/try_P.png",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/assets/images/try_P.png"
+      },
+      {
+        "id": "image_index.apple-touch-icon",
+        "filename": "index.apple-touch-icon",
+        "path": "docs/index.apple-touch-icon.png",
+        "resPath": "res://docs/index.apple-touch-icon.png",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/docs/index.apple-touch-icon.png"
+      },
+      {
+        "id": "image_index.icon",
+        "filename": "index.icon",
+        "path": "docs/index.icon.png",
+        "resPath": "res://docs/index.icon.png",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/docs/index.icon.png"
+      },
+      {
+        "id": "image_index",
+        "filename": "index",
+        "path": "docs/index.png",
+        "resPath": "res://docs/index.png",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/docs/index.png"
+      },
+      {
+        "id": "ui_icon",
+        "filename": "icon",
+        "path": "project/assets/ui/icon.svg",
+        "resPath": "res://project/assets/ui/icon.svg",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/project/assets/ui/icon.svg"
+      },
+      {
+        "id": "ui_title_bg",
+        "filename": "title_bg",
+        "path": "project/assets/ui/title_bg.svg",
+        "resPath": "res://project/assets/ui/title_bg.svg",
+        "rawUrl": "https://raw.githubusercontent.com/Arrru/dosa/main/project/assets/ui/title_bg.svg"
+      }
+    ]
+  }
+}
