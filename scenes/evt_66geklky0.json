@@ -1,0 +1,56 @@
+{
+  "scene_id": "evt_66geklky0",
+  "title": "새 장면",
+  "version": "1.0",
+  "created_at": "2026-04-26T20:03:50.251Z",
+  "events": [
+    {
+      "id": "evt_mb1wkvo0m",
+      "type": "background",
+      "asset_id": "background_library_north",
+      "path": "res://project/assets/backgrounds/library_north.svg"
+    },
+    {
+      "id": "evt_7qhbdjizt",
+      "type": "character_show",
+      "character_id": "character_try_P",
+      "position": "center",
+      "expression": "normal",
+      "path": "res://assets/images/try_P.png"
+    },
+    {
+      "id": "evt_8r5pb7y0s",
+      "type": "character_show",
+      "character_id": "character_try_P",
+      "position": "center",
+      "expression": "normal",
+      "path": "res://assets/images/try_P.png"
+    },
+    {
+      "id": "evt_eny4ed7t1",
+      "type": "dialogue",
+      "speaker": "라모",
+      "text": "안녕 나는 라모. 디자인의 천재지. 디자인 책을 빌리러 왔어!"
+    },
+    {
+      "id": "evt_l3h4tebuo",
+      "type": "choice",
+      "prompt": "디자인 책을 ",
+      "options": [
+        {
+          "text": "빌려준다.",
+          "next_scene": ""
+        },
+        {
+          "text": "빌려주지 않는다.",
+          "next_scene": ""
+        }
+      ]
+    },
+    {
+      "id": "evt_n9y85n7fd",
+      "type": "character_hide",
+      "character_id": "character_try_P"
+    }
+  ]
+}
