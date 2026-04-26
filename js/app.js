@@ -22,7 +22,7 @@ window.EventBus = (() => {
 })();
 
 window.AssetPanelUI = (() => {
-  const TABS = ['backgrounds', 'characters', 'bgm', 'sfx', 'ui', 'recent'];
+  const TABS = ['backgrounds', 'characters', 'bgm', 'sfx', 'reclassify', 'ui', 'recent'];
 
   const isAudio = (asset) => Utils.isSoundFile(asset.filename + '.mp3') || ['bgm', 'sfx'].includes(asset.type);
 
@@ -119,10 +119,59 @@ window.AssetPanelUI = (() => {
     });
   };
 
+  const reclassifyAsset = (asset, newType) => {
+    const uiIdx = AppState.assets.ui.indexOf(asset);
+    if (uiIdx !== -1) AppState.assets.ui.splice(uiIdx, 1);
+
+    const oldId = asset.id;
+    asset.type = newType;
+    asset.id = newType + '_' + asset.filename;
+
+    const allIdx = AppState.assets.all.findIndex(a => a.id === oldId);
+    if (allIdx !== -1) AppState.assets.all[allIdx] = asset;
+
+    if (newType === 'character') {
+      AppState.assets.characters.push(asset);
+    } else {
+      AppState.assets.backgrounds.push(asset);
+    }
+
+    const labelKo = newType === 'character' ? '캐릭터' : '배경';
+    if (window.App) App.showToast(`${asset.filename} → ${labelKo} 탭으로 이동했습니다.`, 'success');
+    render();
+  };
+
   const renderTab = (type) => {
     const container = document.querySelector('#asset-grid');
     if (!container) return;
     container.innerHTML = '';
+
+    if (type === 'reclassify') {
+      const imageAssets = AppState.assets.ui.filter(a => Utils.isImageFile(a.path));
+      if (imageAssets.length === 0) {
+        container.innerHTML = '<div class="asset-list__empty">UI 카테고리에 이동 가능한 이미지가 없습니다.</div>';
+        return;
+      }
+      for (const asset of imageAssets) {
+        const card = createImageCard(asset);
+        const btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;gap:4px;padding:4px 6px 6px;';
+        const charBtn = document.createElement('button');
+        charBtn.textContent = '캐릭터로';
+        charBtn.style.cssText = 'flex:1;padding:3px 4px;background:#ed8936;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:10px;';
+        charBtn.addEventListener('click', (e) => { e.stopPropagation(); reclassifyAsset(asset, 'character'); });
+        const bgBtn = document.createElement('button');
+        bgBtn.textContent = '배경으로';
+        bgBtn.style.cssText = 'flex:1;padding:3px 4px;background:#4a90d9;color:#fff;border:none;border-radius:3px;cursor:pointer;font-size:10px;';
+        bgBtn.addEventListener('click', (e) => { e.stopPropagation(); reclassifyAsset(asset, 'background'); });
+        btnRow.appendChild(charBtn);
+        btnRow.appendChild(bgBtn);
+        card.appendChild(btnRow);
+        attachCardListeners(card, asset);
+        container.appendChild(card);
+      }
+      return;
+    }
 
     const assets = type === 'recent'
       ? AppState.ui.recentAssets
@@ -147,7 +196,8 @@ window.AssetPanelUI = (() => {
     for (const tab of TABS) {
       const btn = document.querySelector(`#tab-${tab}`);
       if (!btn) continue;
-      btn.classList.toggle('tab--active', AppState.ui.activeAssetTab === tab);
+      btn.classList.toggle('tab-btn--active', AppState.ui.activeAssetTab === tab);
+      btn.setAttribute('aria-selected', AppState.ui.activeAssetTab === tab ? 'true' : 'false');
       btn.onclick = () => {
         AppState.ui.activeAssetTab = tab;
         render();
