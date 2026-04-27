@@ -890,15 +890,16 @@ img {
 .preview-speech-bubble {
   position: absolute;
   max-width: 58%;
-  background: rgba(255, 255, 255, 0.93);
-  color: #1a1a2e;
+  background: rgba(15, 17, 30, 0.92);
+  color: #e8eaf0;
+  border: 1px solid rgba(91, 125, 232, 0.35);
   border-radius: 14px;
   padding: 15px 20px;
   font-family: var(--font-ui);
   font-size: clamp(13px, 1.7vw, 19px);
   line-height: 1.55;
   top: 22%;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   z-index: 15;
 }
@@ -907,7 +908,11 @@ img {
   font-weight: 700;
   font-size: 1.1em;
   margin-bottom: 5px;
-  color: #2c2c6e;
+  color: #7a9bf0;
+}
+
+.preview-speech-bubble .bubble-text {
+  color: #e8eaf0;
 }
 
 .preview-speech-bubble--left {
@@ -932,13 +937,13 @@ img {
 .preview-speech-bubble--left::after {
   left: 18px;
   border-width: 10px 8px 0 0;
-  border-color: rgba(255, 255, 255, 0.93) transparent transparent transparent;
+  border-color: rgba(15, 17, 30, 0.92) transparent transparent transparent;
 }
 
 .preview-speech-bubble--right::after {
   right: 18px;
   border-width: 10px 0 0 8px;
-  border-color: rgba(255, 255, 255, 0.93) transparent transparent transparent;
+  border-color: rgba(15, 17, 30, 0.92) transparent transparent transparent;
 }
 
 /* Preview meta bar */
