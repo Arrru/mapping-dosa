@@ -936,13 +936,13 @@ img {
 
 .preview-speech-bubble--left::after {
   left: 18px;
-  border-width: 10px 8px 0 0;
+  border-width: 10px 0 0 8px;
   border-color: rgba(15, 17, 30, 0.92) transparent transparent transparent;
 }
 
 .preview-speech-bubble--right::after {
   right: 18px;
-  border-width: 10px 0 0 8px;
+  border-width: 10px 8px 0 0;
   border-color: rgba(15, 17, 30, 0.92) transparent transparent transparent;
 }
 
