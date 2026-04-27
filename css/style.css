@@ -889,7 +889,11 @@ img {
 /* Speech bubble overlays */
 .preview-speech-bubble {
   position: absolute;
-  max-width: 58%;
+  max-width: 43%;
+  min-width: 100px;
+  box-sizing: border-box;
+  word-break: break-word;
+  overflow-wrap: break-word;
   background: rgba(15, 17, 30, 0.92);
   color: #e8eaf0;
   border: 1px solid rgba(91, 125, 232, 0.35);
@@ -897,7 +901,7 @@ img {
   padding: 15px 20px;
   font-family: var(--font-ui);
   font-size: clamp(13px, 1.7vw, 19px);
-  line-height: 1.55;
+  line-height: 1.6;
   top: 22%;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
   pointer-events: none;
@@ -909,18 +913,24 @@ img {
   font-size: 1.1em;
   margin-bottom: 5px;
   color: #7a9bf0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .preview-speech-bubble .bubble-text {
   color: #e8eaf0;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
+/* 좌: 왼쪽에서 4%, 우: 오른쪽에서 4% — 중앙 침범 방지 */
 .preview-speech-bubble--left {
-  left: 5%;
+  left: 4%;
 }
 
 .preview-speech-bubble--right {
-  right: 5%;
+  right: 4%;
 }
 
 /* Tail */
