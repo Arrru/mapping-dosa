@@ -921,15 +921,21 @@ img {
   overflow-wrap: anywhere;
 }
 
-/* 각 버블이 좌·우 절반을 벗어나지 않도록 max-width로 제한 */
+/*
+  vw 기반 max-width — 브라우저 줌 비율에 따라 자연스럽게 글자 수 변화
+  (1920×1080 기준, 폰트 19px 기준)
+    100% 줌(뷰포트 1920px): 27vw ≈ 518px → 약 24자/줄
+    125% 줌(뷰포트 1536px): 27vw ≈ 415px → 약 19자/줄
+    150% 줌(뷰포트 1280px): 27vw ≈ 346px → 약 16자/줄  ← 기준
+*/
 .preview-speech-bubble--left {
   left: 4%;
-  max-width: 43%;
+  max-width: 27vw;
 }
 
 .preview-speech-bubble--right {
   right: 4%;
-  max-width: 43%;
+  max-width: 27vw;
 }
 
 /* Tail */
