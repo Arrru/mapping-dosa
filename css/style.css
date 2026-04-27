@@ -889,11 +889,8 @@ img {
 /* Speech bubble overlays */
 .preview-speech-bubble {
   position: absolute;
-  max-width: 43%;
-  min-width: 100px;
   box-sizing: border-box;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  min-width: 80px;
   background: rgba(15, 17, 30, 0.92);
   color: #e8eaf0;
   border: 1px solid rgba(91, 125, 232, 0.35);
@@ -906,6 +903,7 @@ img {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   z-index: 15;
+  overflow: hidden;
 }
 
 .preview-speech-bubble .bubble-speaker {
@@ -920,17 +918,20 @@ img {
 
 .preview-speech-bubble .bubble-text {
   color: #e8eaf0;
-  word-break: break-word;
-  overflow-wrap: break-word;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
-/* 좌: 왼쪽에서 4%, 우: 오른쪽에서 4% — 중앙 침범 방지 */
+/* 각 버블이 좌·우 절반을 벗어나지 않도록 max-width로 제한 */
 .preview-speech-bubble--left {
   left: 4%;
+  max-width: 43%;
 }
 
 .preview-speech-bubble--right {
   right: 4%;
+  max-width: 43%;
 }
 
 /* Tail */
