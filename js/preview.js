@@ -152,7 +152,11 @@ window.PreviewPanel = (() => {
         }
         const tx = document.createElement('div');
         tx.className = 'bubble-text';
-        tx.textContent = lastRelevant.text || '';
+        tx.innerHTML = (lastRelevant.text || '')
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/\r\n|\r|\n/g, '<br>');
         bubble.appendChild(tx);
         container.appendChild(bubble);
         return;

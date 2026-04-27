@@ -903,7 +903,6 @@ img {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
   pointer-events: none;
   z-index: 15;
-  overflow: hidden;
 }
 
 .preview-speech-bubble .bubble-speaker {
@@ -918,7 +917,6 @@ img {
 
 .preview-speech-bubble .bubble-text {
   color: #e8eaf0;
-  white-space: pre-wrap;
   word-break: break-all;
   overflow-wrap: anywhere;
 }
