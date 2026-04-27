@@ -132,6 +132,11 @@ window.TimelinePanel = (() => {
 
   function deleteEvent(index) {
     AppState.saveToHistory();
+    const evtToDelete = AppState.scene.events[index];
+    if (evtToDelete && evtToDelete.type === 'character_show') {
+      const pos = evtToDelete.position || 'center';
+      AppState.scene.preview.characters[pos] = null;
+    }
     AppState.scene.events.splice(index, 1);
     if (AppState.ui.selectedEventIndex === index) {
       AppState.ui.selectedEventIndex = null;
@@ -223,7 +228,7 @@ window.TimelinePanel = (() => {
       character_show:    { type, character_id: null, position: 'center', expression: 'normal', path: '' },
       character_hide:    { type, character_id: null },
       expression_change: { type, character_id: null, expression: 'normal', path: '' },
-      dialogue:          { type, speaker: '', text: '' },
+      dialogue:          { type, speaker: '', text: '', display_style: 'normal' },
       choice:            { type, prompt: '', options: [{ text: '', next_scene: '' }] },
     };
     const event = { id, ...(defaults[type] || { type }) };
@@ -269,6 +274,7 @@ window.TimelinePanel = (() => {
       html += buildCharacterSelector('character_id', '캐릭터', event.character_id);
       html += buildTextInput('expression', '표정', event.expression || 'normal');
     } else if (event.type === 'dialogue') {
+      html += buildStyleRadio('display_style', '표시 방식', event.display_style || 'normal');
       html += buildTextInput('speaker', '화자', event.speaker || '');
       html += buildTextarea('text', '대사', event.text || '');
     } else if (event.type === 'choice') {
@@ -348,6 +354,25 @@ window.TimelinePanel = (() => {
       <label style="display:block;font-size:12px;color:#a0aec0;margin-bottom:4px;">${escHtml(label)}</label>
       <textarea name="${escHtml(name)}" rows="4"
         style="width:100%;padding:6px 8px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:13px;resize:vertical;box-sizing:border-box;">${escHtml(value)}</textarea>
+    </div>`;
+  }
+
+  function buildStyleRadio(name, label, selected) {
+    const styles = [
+      ['normal', '일반 대사창'],
+      ['bubble_left', '말풍선 좌'],
+      ['bubble_right', '말풍선 우'],
+    ];
+    const radios = styles.map(([val, lbl]) => {
+      const chk = selected === val ? ' checked' : '';
+      return `<label style="display:inline-flex;align-items:center;gap:4px;cursor:pointer;margin-right:10px;font-size:12px;color:#e2e8f0;">
+        <input type="radio" name="${escHtml(name)}" value="${val}"${chk} style="accent-color:#4a90d9;">
+        ${lbl}
+      </label>`;
+    }).join('');
+    return `<div style="margin-bottom:12px;">
+      <label style="display:block;font-size:12px;color:#a0aec0;margin-bottom:6px;">${escHtml(label)}</label>
+      <div style="display:flex;flex-wrap:wrap;gap:2px;">${radios}</div>
     </div>`;
   }
 
@@ -489,6 +514,7 @@ window.TimelinePanel = (() => {
         break;
       }
       case 'dialogue':
+        event.display_style = getRadio('display_style') || 'normal';
         event.speaker = get('speaker') || '';
         event.text = get('text') || '';
         break;

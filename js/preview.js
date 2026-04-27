@@ -34,6 +34,7 @@ window.PreviewPanel = (() => {
 
     charsArea.addEventListener('drop', (e) => {
       e.preventDefault();
+      e.stopPropagation();
       handleDrop(e);
     });
 
@@ -104,6 +105,10 @@ window.PreviewPanel = (() => {
     const speakerEl = document.getElementById('preview-speaker-name');
     const textEl = document.getElementById('preview-dialogue-text');
     const choicesEl = document.getElementById('preview-choices');
+    const container = document.getElementById('preview-container');
+
+    // Remove any existing speech bubbles
+    container.querySelectorAll('.preview-speech-bubble').forEach(el => el.remove());
 
     const events = AppState.scene.events;
     let lastRelevant = null;
@@ -118,6 +123,27 @@ window.PreviewPanel = (() => {
     if (!lastRelevant) {
       dialogueBox.style.display = 'none';
       return;
+    }
+
+    if (lastRelevant.type === 'dialogue') {
+      const style = lastRelevant.display_style || 'normal';
+      if (style === 'bubble_left' || style === 'bubble_right') {
+        dialogueBox.style.display = 'none';
+        const bubble = document.createElement('div');
+        bubble.className = `preview-speech-bubble preview-speech-bubble--${style === 'bubble_left' ? 'left' : 'right'}`;
+        if (lastRelevant.speaker) {
+          const sp = document.createElement('div');
+          sp.className = 'bubble-speaker';
+          sp.textContent = lastRelevant.speaker;
+          bubble.appendChild(sp);
+        }
+        const tx = document.createElement('div');
+        tx.className = 'bubble-text';
+        tx.textContent = lastRelevant.text || '';
+        bubble.appendChild(tx);
+        container.appendChild(bubble);
+        return;
+      }
     }
 
     dialogueBox.style.display = '';

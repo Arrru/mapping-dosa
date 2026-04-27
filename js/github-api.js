@@ -111,5 +111,38 @@ window.GitHubAPI = (() => {
     return new TextDecoder('utf-8').decode(bytes);
   };
 
-  return { fetchAssetTree, getRawUrl, pushFile, pushMultipleFiles, testToken, listScenes, fetchFileContent };
+  const renameScene = async (token, repo, oldId, newId, branch = 'main') => {
+    const oldPath = `project/scenes/novel/${oldId}.json`;
+    const newPath = `project/scenes/novel/${newId}.json`;
+    const now = new Date().toISOString().slice(0, 10);
+
+    const getRes = await fetch(`${BASE}/repos/${repo}/contents/${oldPath}`, {
+      headers: authHeaders(token),
+      cache: 'no-store',
+    });
+    await throwIfError(getRes, `renameScene fetch ${oldPath}`);
+    const fileData = await getRes.json();
+    const oldSha = fileData.sha;
+
+    const bytes = Uint8Array.from(atob(fileData.content.replace(/\n/g, '')), c => c.charCodeAt(0));
+    const parsed = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+    parsed.scene_id = newId;
+    const newContent = JSON.stringify(parsed, null, 2);
+
+    await pushFile(token, repo, newPath, newContent, `scene: rename ${oldId} → ${newId} (${now})`, branch);
+
+    const deleteRes = await fetch(`${BASE}/repos/${repo}/contents/${oldPath}`, {
+      method: 'DELETE',
+      headers: { ...authHeaders(token), 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: `scene: remove ${oldId} (renamed to ${newId}) (${now})`,
+        sha: oldSha,
+        branch,
+      }),
+    });
+    await throwIfError(deleteRes, `renameScene delete ${oldPath}`);
+    return { success: true };
+  };
+
+  return { fetchAssetTree, getRawUrl, pushFile, pushMultipleFiles, testToken, listScenes, fetchFileContent, renameScene };
 })();

@@ -121,6 +121,8 @@ window.AssetPanelUI = (() => {
 
   const RECLASSIFY_LS_KEY = 'vn_reclassifications';
 
+  let _moveTab = 'image'; // 'image' | 'sound'
+
   const applyReclassification = (asset, newType) => {
     ['ui', 'backgrounds', 'characters', 'bgm', 'sfx'].forEach(key => {
       const arr = AppState.assets[key];
@@ -132,6 +134,8 @@ window.AssetPanelUI = (() => {
     asset.id = asset.type + '_' + asset.filename;
     if (newType === 'character') AppState.assets.characters.push(asset);
     else if (newType === 'background') AppState.assets.backgrounds.push(asset);
+    else if (newType === 'bgm') AppState.assets.bgm.push(asset);
+    else if (newType === 'sfx') AppState.assets.sfx.push(asset);
     else AppState.assets.ui.push(asset);
   };
 
@@ -154,7 +158,7 @@ window.AssetPanelUI = (() => {
     }
     localStorage.setItem(RECLASSIFY_LS_KEY, JSON.stringify(stored));
     applyReclassification(asset, newType);
-    const labels = { character: '캐릭터', background: '배경', ui: 'UI' };
+    const labels = { character: '캐릭터', background: '배경', ui: 'UI', bgm: 'BGM', sfx: 'SFX' };
     if (window.App) App.showToast(`${asset.filename} → ${labels[newType] || newType} 탭으로 이동했습니다.`, 'success');
     render();
   };
@@ -165,59 +169,117 @@ window.AssetPanelUI = (() => {
     container.innerHTML = '';
 
     if (type === 'reclassify') {
-      const allImages = [
-        ...AppState.assets.backgrounds,
-        ...AppState.assets.characters,
-        ...AppState.assets.ui.filter(a => Utils.isImageFile(a.path)),
-      ];
-      if (allImages.length === 0) {
-        container.innerHTML = '<div class="asset-list__empty">이미지 에셋이 없습니다.</div>';
-        return;
+      container.style.cssText = 'overflow-y:auto;display:flex;flex-direction:column;gap:0;padding:0;';
+
+      // Top-level tabs: 이미지 | 사운드
+      const tabBar = document.createElement('div');
+      tabBar.style.cssText = 'display:flex;gap:2px;padding:4px 4px 0;flex-shrink:0;';
+      const makeTopTab = (label, key) => {
+        const btn = document.createElement('button');
+        btn.textContent = label;
+        const active = _moveTab === key;
+        btn.style.cssText = `flex:1;padding:5px 0;font-size:11px;font-weight:600;border:none;border-radius:4px 4px 0 0;cursor:pointer;background:${active ? '#2d3748' : 'transparent'};color:${active ? '#e2e8f0' : '#718096'};border-bottom:2px solid ${active ? '#4a90d9' : 'transparent'};`;
+        btn.addEventListener('click', () => { _moveTab = key; renderTab('reclassify'); });
+        return btn;
+      };
+      tabBar.appendChild(makeTopTab('이미지', 'image'));
+      tabBar.appendChild(makeTopTab('사운드', 'sound'));
+      container.appendChild(tabBar);
+
+      const body = document.createElement('div');
+      body.style.cssText = 'flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:4px;';
+
+      if (_moveTab === 'image') {
+        const allImages = [
+          ...AppState.assets.backgrounds,
+          ...AppState.assets.characters,
+          ...AppState.assets.ui.filter(a => Utils.isImageFile(a.path)),
+        ];
+        if (allImages.length === 0) {
+          body.innerHTML = '<div class="asset-list__empty">이미지 에셋이 없습니다.</div>';
+          container.appendChild(body);
+          return;
+        }
+        const typeLabels = { character: '캐릭터', background: '배경', image: 'UI', ui: 'UI' };
+        const typeColors = { character: '#ed8936', background: '#4a90d9', ui: '#718096', image: '#718096' };
+        for (const asset of allImages) {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px;border-radius:4px;background:#1a202c;';
+          const img = document.createElement('img');
+          img.src = asset.rawUrl;
+          img.loading = 'lazy';
+          img.style.cssText = 'width:38px;height:38px;object-fit:cover;border-radius:3px;flex-shrink:0;background:#2d3748;';
+          const info = document.createElement('div');
+          info.style.cssText = 'flex:1;min-width:0;';
+          const nameEl = document.createElement('div');
+          nameEl.textContent = asset.filename;
+          nameEl.style.cssText = 'font-size:11px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+          const typeEl = document.createElement('div');
+          typeEl.textContent = typeLabels[asset.type] || asset.type;
+          typeEl.style.cssText = `font-size:10px;color:${typeColors[asset.type] || '#718096'};margin-top:2px;`;
+          info.appendChild(nameEl);
+          info.appendChild(typeEl);
+          const btnGroup = document.createElement('div');
+          btnGroup.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
+          const isUi = asset.type === 'image' || asset.type === 'ui';
+          const makeBtn = (label, color, targetType) => {
+            const active = targetType === 'ui' ? isUi : asset.type === targetType;
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            btn.style.cssText = `padding:3px 6px;background:${active ? color : 'transparent'};color:${active ? '#fff' : '#a0aec0'};border:1px solid ${active ? color : '#4a5568'};border-radius:3px;cursor:pointer;font-size:10px;`;
+            btn.addEventListener('click', (e) => { e.stopPropagation(); reclassifyAsset(asset, targetType); });
+            return btn;
+          };
+          btnGroup.appendChild(makeBtn('캐릭터', '#ed8936', 'character'));
+          btnGroup.appendChild(makeBtn('배경', '#4a90d9', 'background'));
+          btnGroup.appendChild(makeBtn('UI', '#718096', 'ui'));
+          row.appendChild(img);
+          row.appendChild(info);
+          row.appendChild(btnGroup);
+          body.appendChild(row);
+        }
+      } else {
+        const allSounds = [...AppState.assets.bgm, ...AppState.assets.sfx];
+        if (allSounds.length === 0) {
+          body.innerHTML = '<div class="asset-list__empty">사운드 에셋이 없습니다.</div>';
+          container.appendChild(body);
+          return;
+        }
+        for (const asset of allSounds) {
+          const row = document.createElement('div');
+          row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px;border-radius:4px;background:#1a202c;';
+          const icon = document.createElement('div');
+          icon.textContent = '♪';
+          icon.style.cssText = 'width:38px;height:38px;display:flex;align-items:center;justify-content:center;border-radius:3px;background:#2d3748;color:#7b68ee;font-size:16px;flex-shrink:0;';
+          const info = document.createElement('div');
+          info.style.cssText = 'flex:1;min-width:0;';
+          const nameEl = document.createElement('div');
+          nameEl.textContent = asset.filename;
+          nameEl.style.cssText = 'font-size:11px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+          const typeEl = document.createElement('div');
+          typeEl.textContent = asset.type === 'bgm' ? 'BGM' : 'SFX';
+          typeEl.style.cssText = `font-size:10px;color:${asset.type === 'bgm' ? '#7b68ee' : '#48bb78'};margin-top:2px;`;
+          info.appendChild(nameEl);
+          info.appendChild(typeEl);
+          const btnGroup = document.createElement('div');
+          btnGroup.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
+          const makeSndBtn = (label, color, targetType) => {
+            const active = asset.type === targetType;
+            const btn = document.createElement('button');
+            btn.textContent = label;
+            btn.style.cssText = `padding:3px 8px;background:${active ? color : 'transparent'};color:${active ? '#fff' : '#a0aec0'};border:1px solid ${active ? color : '#4a5568'};border-radius:3px;cursor:pointer;font-size:10px;`;
+            btn.addEventListener('click', (e) => { e.stopPropagation(); reclassifyAsset(asset, targetType); });
+            return btn;
+          };
+          btnGroup.appendChild(makeSndBtn('BGM', '#7b68ee', 'bgm'));
+          btnGroup.appendChild(makeSndBtn('SFX', '#48bb78', 'sfx'));
+          row.appendChild(icon);
+          row.appendChild(info);
+          row.appendChild(btnGroup);
+          body.appendChild(row);
+        }
       }
-      container.style.cssText = 'overflow-y:auto;display:flex;flex-direction:column;gap:4px;padding:4px;';
-      const typeLabels = { character: '캐릭터', background: '배경', image: 'UI', ui: 'UI' };
-      const typeColors = { character: '#ed8936', background: '#4a90d9', ui: '#718096', image: '#718096' };
-      for (const asset of allImages) {
-        const row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px;border-radius:4px;background:#1a202c;';
-
-        const img = document.createElement('img');
-        img.src = asset.rawUrl;
-        img.loading = 'lazy';
-        img.style.cssText = 'width:38px;height:38px;object-fit:cover;border-radius:3px;flex-shrink:0;background:#2d3748;';
-
-        const info = document.createElement('div');
-        info.style.cssText = 'flex:1;min-width:0;';
-        const nameEl = document.createElement('div');
-        nameEl.textContent = asset.filename;
-        nameEl.style.cssText = 'font-size:11px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-        const typeEl = document.createElement('div');
-        typeEl.textContent = typeLabels[asset.type] || asset.type;
-        typeEl.style.cssText = `font-size:10px;color:${typeColors[asset.type] || '#718096'};margin-top:2px;`;
-        info.appendChild(nameEl);
-        info.appendChild(typeEl);
-
-        const btnGroup = document.createElement('div');
-        btnGroup.style.cssText = 'display:flex;gap:3px;flex-shrink:0;';
-
-        const isUi = asset.type === 'image' || asset.type === 'ui';
-        const makeBtn = (label, color, targetType) => {
-          const active = targetType === 'ui' ? isUi : asset.type === targetType;
-          const btn = document.createElement('button');
-          btn.textContent = label;
-          btn.style.cssText = `padding:3px 6px;background:${active ? color : 'transparent'};color:${active ? '#fff' : '#a0aec0'};border:1px solid ${active ? color : '#4a5568'};border-radius:3px;cursor:pointer;font-size:10px;`;
-          btn.addEventListener('click', (e) => { e.stopPropagation(); reclassifyAsset(asset, targetType); });
-          return btn;
-        };
-        btnGroup.appendChild(makeBtn('캐릭터', '#ed8936', 'character'));
-        btnGroup.appendChild(makeBtn('배경', '#4a90d9', 'background'));
-        btnGroup.appendChild(makeBtn('UI', '#718096', 'ui'));
-
-        row.appendChild(img);
-        row.appendChild(info);
-        row.appendChild(btnGroup);
-        container.appendChild(row);
-      }
+      container.appendChild(body);
       return;
     }
 
@@ -369,13 +431,85 @@ window.App = (() => {
       files.forEach(file => {
         const sceneId = file.name.replace('.json', '');
         const row = document.createElement('div');
-        row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 10px;background:#1a202c;border-radius:4px;';
+        row.style.cssText = 'display:flex;flex-direction:column;gap:4px;padding:8px 10px;background:#1a202c;border-radius:4px;';
+
+        const topRow = document.createElement('div');
+        topRow.style.cssText = 'display:flex;align-items:center;gap:8px;';
+
         const idEl = document.createElement('div');
         idEl.style.cssText = 'flex:1;font-size:13px;color:#e2e8f0;font-family:monospace;';
         idEl.textContent = sceneId;
+
+        const renameBtn = document.createElement('button');
+        renameBtn.textContent = '이름변경';
+        renameBtn.style.cssText = 'padding:4px 8px;background:transparent;color:#a0aec0;border:1px solid #4a5568;border-radius:4px;cursor:pointer;font-size:11px;';
+
         const loadBtn = document.createElement('button');
         loadBtn.textContent = '불러오기';
         loadBtn.style.cssText = 'padding:4px 12px;background:#4a90d9;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;';
+
+        // Rename inline area (hidden by default)
+        const renameRow = document.createElement('div');
+        renameRow.style.cssText = 'display:none;gap:6px;align-items:center;';
+        const renameInput = document.createElement('input');
+        renameInput.type = 'text';
+        renameInput.value = sceneId;
+        renameInput.style.cssText = 'flex:1;padding:4px 7px;background:#161923;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:12px;font-family:monospace;';
+        const confirmRenameBtn = document.createElement('button');
+        confirmRenameBtn.textContent = '확인';
+        confirmRenameBtn.style.cssText = 'padding:4px 10px;background:#48bb78;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:11px;';
+        const cancelRenameBtn = document.createElement('button');
+        cancelRenameBtn.textContent = '취소';
+        cancelRenameBtn.style.cssText = 'padding:4px 8px;background:transparent;color:#a0aec0;border:1px solid #4a5568;border-radius:4px;cursor:pointer;font-size:11px;';
+        renameRow.appendChild(renameInput);
+        renameRow.appendChild(confirmRenameBtn);
+        renameRow.appendChild(cancelRenameBtn);
+
+        renameBtn.addEventListener('click', () => {
+          renameRow.style.display = 'flex';
+          renameBtn.style.display = 'none';
+          renameInput.focus();
+          renameInput.select();
+        });
+        cancelRenameBtn.addEventListener('click', () => {
+          renameRow.style.display = 'none';
+          renameBtn.style.display = '';
+          renameInput.value = sceneId;
+        });
+        confirmRenameBtn.addEventListener('click', async () => {
+          const newId = renameInput.value.trim().replace(/\s+/g, '_');
+          if (!newId || newId === sceneId) {
+            renameRow.style.display = 'none';
+            renameBtn.style.display = '';
+            return;
+          }
+          if (!AppState.config.githubToken) { showToast('GitHub 토큰이 필요합니다.', 'error'); return; }
+          confirmRenameBtn.textContent = '...';
+          confirmRenameBtn.disabled = true;
+          try {
+            await GitHubAPI.renameScene(AppState.config.githubToken, AppState.config.targetRepo, sceneId, newId, AppState.config.branch);
+            showToast(`씬 "${sceneId}" → "${newId}" 변경 완료`, 'success');
+            idEl.textContent = newId;
+            renameRow.style.display = 'none';
+            renameBtn.style.display = '';
+            // Update scene id in current session if it matches
+            if (AppState.scene.id === sceneId) {
+              AppState.scene.id = newId;
+              AppState.autosave();
+              const sid = document.querySelector('#scene-id-input');
+              if (sid) sid.value = newId;
+            }
+            // Refresh known ids
+            AppState.knownSceneIds = (AppState.knownSceneIds || []).map(id => id === sceneId ? newId : id);
+            updateSceneIdDatalist();
+          } catch (err) {
+            showToast(`이름 변경 실패: ${err.message}`, 'error');
+          } finally {
+            confirmRenameBtn.textContent = '확인';
+            confirmRenameBtn.disabled = false;
+          }
+        });
+
         loadBtn.addEventListener('click', async () => {
           loadBtn.textContent = '...';
           loadBtn.disabled = true;
@@ -383,7 +517,7 @@ window.App = (() => {
             const json = await GitHubAPI.fetchFileContent(
               AppState.config.githubToken,
               AppState.config.targetRepo,
-              `scenes/${file.name}`
+              `project/scenes/novel/${file.name}`
             );
             const result = Exporter.importSceneJSON(json);
             if (result.success) {
@@ -400,8 +534,12 @@ window.App = (() => {
             loadBtn.disabled = false;
           }
         });
-        row.appendChild(idEl);
-        row.appendChild(loadBtn);
+
+        topRow.appendChild(idEl);
+        topRow.appendChild(renameBtn);
+        topRow.appendChild(loadBtn);
+        row.appendChild(topRow);
+        row.appendChild(renameRow);
         list.appendChild(row);
       });
       content.appendChild(list);
