@@ -112,10 +112,23 @@ window.PreviewPanel = (() => {
 
     const events = AppState.scene.events;
     let lastRelevant = null;
-    for (let i = events.length - 1; i >= 0; i--) {
-      if (events[i].type === 'dialogue' || events[i].type === 'choice') {
-        lastRelevant = events[i];
-        break;
+
+    // If a dialogue/choice event is currently selected, preview that one
+    const selIdx = AppState.ui.selectedEventIndex;
+    if (selIdx !== null && selIdx >= 0 && selIdx < events.length) {
+      const sel = events[selIdx];
+      if (sel.type === 'dialogue' || sel.type === 'choice') {
+        lastRelevant = sel;
+      }
+    }
+
+    // Fall back to the last dialogue/choice in the timeline
+    if (!lastRelevant) {
+      for (let i = events.length - 1; i >= 0; i--) {
+        if (events[i].type === 'dialogue' || events[i].type === 'choice') {
+          lastRelevant = events[i];
+          break;
+        }
       }
     }
 

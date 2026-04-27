@@ -128,6 +128,7 @@ window.TimelinePanel = (() => {
     AppState.ui.selectedEventIndex = index;
     render();
     showEventEditor(index);
+    EventBus.emit('preview:updated');
   }
 
   function deleteEvent(index) {

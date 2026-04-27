@@ -889,24 +889,24 @@ img {
 /* Speech bubble overlays */
 .preview-speech-bubble {
   position: absolute;
-  max-width: 44%;
+  max-width: 58%;
   background: rgba(255, 255, 255, 0.93);
   color: #1a1a2e;
-  border-radius: 10px;
-  padding: 10px 13px;
+  border-radius: 14px;
+  padding: 15px 20px;
   font-family: var(--font-ui);
-  font-size: clamp(9px, 1.15vw, 13px);
+  font-size: clamp(13px, 1.7vw, 19px);
   line-height: 1.55;
-  top: 28%;
-  box-shadow: 0 3px 14px rgba(0, 0, 0, 0.35);
+  top: 22%;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   pointer-events: none;
   z-index: 15;
 }
 
 .preview-speech-bubble .bubble-speaker {
   font-weight: 700;
-  font-size: 1.05em;
-  margin-bottom: 4px;
+  font-size: 1.1em;
+  margin-bottom: 5px;
   color: #2c2c6e;
 }
 
