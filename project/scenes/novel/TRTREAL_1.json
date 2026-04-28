@@ -2,7 +2,7 @@
   "scene_id": "TRTREAL_1",
   "title": "새 장면",
   "version": "1.0",
-  "created_at": "2026-04-28T14:11:57.819Z",
+  "created_at": "2026-04-28T14:24:25.100Z",
   "events": [
     {
       "id": "evt_2zl4mvih8",
@@ -79,15 +79,15 @@
       "options": [
         {
           "text": "네? 디자이너 책이라뇨..말을 좀 확실하게 해주셔야 하지 않을까요? 저도 여기 처음 와서 잘 모르는데 그렇게 두루뭉술하고 애매하게 말씀하시면..저도 찾아드릴 수가 없어요.. ",
-          "next_scene": ""
+          "next_scene": "ANS_1"
         },
         {
           "text": "(수인 그리는 법 책을 빌려준다.)",
-          "next_scene": ""
+          "next_scene": "ANS_2"
         },
         {
           "text": "너~무 귀엽다. 라모씨는 왜 이름도 라모씨인 걸까!",
-          "next_scene": ""
+          "next_scene": "ANS3"
         }
       ]
     }
