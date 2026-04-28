@@ -1,0 +1,47 @@
+{
+  "scene_id": "evt_bgqxrggig",
+  "title": "새 장면",
+  "version": "1.0",
+  "created_at": "2026-04-28T14:19:07.976Z",
+  "events": [
+    {
+      "id": "evt_c6kh8fud4",
+      "type": "background",
+      "asset_id": "background_library_north",
+      "path": "res://project/assets/backgrounds/library_north.svg"
+    },
+    {
+      "id": "evt_vcgkezzdy",
+      "type": "bgm_play",
+      "asset_id": "bgm_Morning",
+      "path": "res://assets/sounds/Morning.mp3",
+      "loop": true
+    },
+    {
+      "id": "evt_u5dgo06pc",
+      "type": "character_show",
+      "character_id": "character_try_P",
+      "position": "center",
+      "expression": "normal",
+      "path": "res://assets/images/try_P.png"
+    },
+    {
+      "id": "evt_qi026o04h",
+      "type": "sfx_play",
+      "asset_id": "sfx_Sharara",
+      "path": "res://assets/sounds/Sharara.mp3"
+    },
+    {
+      "id": "evt_xmcnagvok",
+      "type": "dialogue",
+      "speaker": "라모",
+      "text": "이건...! 디자인력 충전!! \n한 장에 600달러짜리 \n그림을 그릴 거야!!! \n고마워!",
+      "display_style": "bubble_left"
+    },
+    {
+      "id": "evt_mzbuobki3",
+      "type": "character_hide",
+      "character_id": "character_try_P"
+    }
+  ]
+}
