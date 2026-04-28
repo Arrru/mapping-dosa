@@ -1,0 +1,95 @@
+{
+  "scene_id": "TRTREAL_1",
+  "title": "새 장면",
+  "version": "1.0",
+  "created_at": "2026-04-28T14:11:57.819Z",
+  "events": [
+    {
+      "id": "evt_2zl4mvih8",
+      "type": "background",
+      "asset_id": "background_library_north",
+      "path": "res://project/assets/backgrounds/library_north.svg"
+    },
+    {
+      "id": "evt_tqbj3my5g",
+      "type": "bgm_play",
+      "asset_id": "bgm_Morning",
+      "path": "res://assets/sounds/Morning.mp3",
+      "loop": true
+    },
+    {
+      "id": "evt_3hywb1o5u",
+      "type": "sfx_play",
+      "asset_id": "sfx_Sharara",
+      "path": "res://assets/sounds/Sharara.mp3"
+    },
+    {
+      "id": "evt_115buaaew",
+      "type": "character_show",
+      "character_id": "character_try_P",
+      "position": "center",
+      "expression": "normal",
+      "path": "res://assets/images/try_P.png"
+    },
+    {
+      "id": "evt_rqchrbw70",
+      "type": "dialogue",
+      "speaker": "라모",
+      "text": "안녕! 나는 디자인의 요정 라모야!",
+      "display_style": "bubble_left"
+    },
+    {
+      "id": "evt_d37y82alz",
+      "type": "dialogue",
+      "speaker": "라모",
+      "text": "디자이너력 충전을 위해서 책을 빌리러 왔어",
+      "display_style": "bubble_right"
+    },
+    {
+      "id": "evt_hsyisp8bz",
+      "type": "dialogue",
+      "speaker": "사서",
+      "text": "안녕하세요! 라모씨! ",
+      "display_style": "normal"
+    },
+    {
+      "id": "evt_02qnxwvpj",
+      "type": "expression_change",
+      "character_id": "character_try_P",
+      "expression": "normal",
+      "path": "res://assets/images/try_P.png"
+    },
+    {
+      "id": "evt_21ex74a7z",
+      "type": "sfx_play",
+      "asset_id": "sfx_Sharara",
+      "path": "res://assets/sounds/Sharara.mp3"
+    },
+    {
+      "id": "evt_1pe9et95e",
+      "type": "dialogue",
+      "speaker": "라모",
+      "text": "그래서 말인데, 디자이너 책을 찾아 줄 수 있어?",
+      "display_style": "bubble_left"
+    },
+    {
+      "id": "evt_q90mkxeh0",
+      "type": "choice",
+      "prompt": "",
+      "options": [
+        {
+          "text": "네? 디자이너 책이라뇨..말을 좀 확실하게 해주셔야 하지 않을까요? 저도 여기 처음 와서 잘 모르는데 그렇게 두루뭉술하고 애매하게 말씀하시면..저도 찾아드릴 수가 없어요.. ",
+          "next_scene": ""
+        },
+        {
+          "text": "(수인 그리는 법 책을 빌려준다.)",
+          "next_scene": ""
+        },
+        {
+          "text": "너~무 귀엽다. 라모씨는 왜 이름도 라모씨인 걸까!",
+          "next_scene": ""
+        }
+      ]
+    }
+  ]
+}
