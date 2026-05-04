@@ -9,9 +9,11 @@ window.PreviewPanel = (() => {
     expression_change: { label: '표정 변경',   icon: '😊',  color: '#f6ad55' },
     dialogue:          { label: '대사',        icon: '💬',  color: '#38b2ac' },
     choice:            { label: '선택지',      icon: '🔀',  color: '#fc8181' },
+    place:             { label: '자유 배치',   icon: '🧩',  color: '#9f7aea' },
   };
 
   let charOptionsPopup = null;
+  let _dragState = null;
 
   function init() {
     const container = document.getElementById('preview-container');
@@ -45,6 +47,16 @@ window.PreviewPanel = (() => {
       }
     });
 
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') deselectPlaced();
+    });
+
+    container.addEventListener('mousedown', (e) => {
+      if (!e.target.closest('.placed-item')) {
+        deselectPlaced();
+      }
+    });
+
     EventBus.on('preview:updated', () => render());
     EventBus.on('timeline:updated', () => render());
 
@@ -54,6 +66,7 @@ window.PreviewPanel = (() => {
   function render() {
     renderBackground();
     renderCharacters();
+    renderPlacedItems();
     renderDialogue();
   }
 
@@ -100,6 +113,69 @@ window.PreviewPanel = (() => {
     });
   }
 
+  function renderPlacedItems() {
+    const layer = document.getElementById('preview-placed-items');
+    if (!layer) return;
+    layer.innerHTML = '';
+
+    const placeEvents = AppState.scene.events.filter(e => e.type === 'place');
+    const selectedId = AppState.ui.selectedPlacedId;
+
+    placeEvents.forEach((event) => {
+      const itemId = event.item_id;
+      const rect = event.rect || { x: 0.1, y: 0.1, w: 0.2, h: 0.2 };
+
+      const div = document.createElement('div');
+      div.className = 'placed-item' + (selectedId === itemId ? ' placed-item--selected' : '');
+      div.dataset.itemId = itemId;
+      div.style.left   = (rect.x * 100) + '%';
+      div.style.top    = (rect.y * 100) + '%';
+      div.style.width  = (rect.w * 100) + '%';
+      div.style.height = (rect.h * 100) + '%';
+      div.style.zIndex = event.z != null ? event.z : 20;
+
+      if (event.rawUrl) {
+        const img = document.createElement('img');
+        img.src = event.rawUrl;
+        img.alt = event.asset_id || itemId;
+        div.appendChild(img);
+      }
+
+      if (selectedId === itemId) {
+        ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].forEach((dir) => {
+          const handle = document.createElement('div');
+          handle.className = `resize-handle resize-handle--${dir}`;
+          handle.dataset.dir = dir;
+          handle.addEventListener('mousedown', (e) => {
+            e.stopPropagation();
+            startResize(e, event, dir);
+          });
+          div.appendChild(handle);
+        });
+
+        const delBtn = document.createElement('button');
+        delBtn.className = 'placed-item__delete';
+        delBtn.textContent = '×';
+        delBtn.title = '삭제';
+        delBtn.addEventListener('mousedown', (e) => e.stopPropagation());
+        delBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          removePlaceEvent(itemId);
+        });
+        div.appendChild(delBtn);
+      }
+
+      div.addEventListener('mousedown', (e) => {
+        if (e.target.classList.contains('resize-handle') || e.target.classList.contains('placed-item__delete')) return;
+        e.stopPropagation();
+        selectPlacedItem(itemId);
+        startDrag(e, event);
+      });
+
+      layer.appendChild(div);
+    });
+  }
+
   function renderDialogue() {
     const dialogueBox = document.getElementById('preview-dialogue-box');
     const speakerEl = document.getElementById('preview-speaker-name');
@@ -107,13 +183,11 @@ window.PreviewPanel = (() => {
     const choicesEl = document.getElementById('preview-choices');
     const container = document.getElementById('preview-container');
 
-    // Remove any existing speech bubbles
     container.querySelectorAll('.preview-speech-bubble').forEach(el => el.remove());
 
     const events = AppState.scene.events;
     let lastRelevant = null;
 
-    // If a dialogue/choice event is currently selected, preview that one
     const selIdx = AppState.ui.selectedEventIndex;
     if (selIdx !== null && selIdx >= 0 && selIdx < events.length) {
       const sel = events[selIdx];
@@ -122,7 +196,6 @@ window.PreviewPanel = (() => {
       }
     }
 
-    // Fall back to the last dialogue/choice in the timeline
     if (!lastRelevant) {
       for (let i = events.length - 1; i >= 0; i--) {
         if (events[i].type === 'dialogue' || events[i].type === 'choice') {
@@ -194,18 +267,29 @@ window.PreviewPanel = (() => {
     if (!asset) return;
 
     if (asset.type === 'background') {
-      applyBackground(asset);
-      EventBus.emit('preview:updated');
-      EventBus.emit('timeline:updated');
+      if (e.shiftKey) {
+        const container = document.getElementById('preview-container');
+        const cr = container.getBoundingClientRect();
+        const nx = Math.max(0, Math.min(1, (e.clientX - cr.left) / cr.width));
+        const ny = Math.max(0, Math.min(1, (e.clientY - cr.top) / cr.height));
+        addPlaceEvent(asset, { x: Math.max(0, nx - 0.15), y: Math.max(0, ny - 0.15), w: 0.3, h: 0.3 }, 0);
+      } else {
+        applyBackground(asset);
+        EventBus.emit('preview:updated');
+        EventBus.emit('timeline:updated');
+      }
     } else if (asset.type === 'character') {
-      const charsArea = document.getElementById('preview-characters');
-      const rect = charsArea.getBoundingClientRect();
-      const relX = e.clientX - rect.left;
-      const third = rect.width / 3;
-      const position = relX < third ? 'left' : relX < third * 2 ? 'center' : 'right';
-      applyCharacter(asset, position);
-      EventBus.emit('preview:updated');
-      EventBus.emit('timeline:updated');
+      const container = document.getElementById('preview-container');
+      const cr = container.getBoundingClientRect();
+      const nx = Math.max(0, Math.min(0.75, (e.clientX - cr.left) / cr.width - 0.125));
+      const ny = Math.max(0, Math.min(0.3, (e.clientY - cr.top) / cr.height - 0.35));
+      addPlaceEvent(asset, { x: nx, y: ny, w: 0.25, h: 0.7 }, 10);
+    } else if (asset.type === 'ui' || asset.type === 'image') {
+      const container = document.getElementById('preview-container');
+      const cr = container.getBoundingClientRect();
+      const nx = Math.max(0, Math.min(0.8, (e.clientX - cr.left) / cr.width - 0.1));
+      const ny = Math.max(0, Math.min(0.9, (e.clientY - cr.top) / cr.height - 0.05));
+      addPlaceEvent(asset, { x: nx, y: ny, w: 0.2, h: 0.1 }, 20);
     } else if (asset.type === 'bgm' || asset.type === 'sfx') {
       AppState.saveToHistory();
       AppState.scene.events.push({
@@ -218,6 +302,138 @@ window.PreviewPanel = (() => {
       AppState.autosave();
       EventBus.emit('timeline:updated');
     }
+  }
+
+  function addPlaceEvent(asset, rect, z) {
+    AppState.saveToHistory();
+    const itemId = 'pi_' + Utils.generateId();
+    const event = {
+      id: Utils.generateId(),
+      type: 'place',
+      item_id: itemId,
+      asset_kind: asset.type || 'image',
+      asset_id: asset.id || null,
+      path: asset.resPath || '',
+      rawUrl: asset.rawUrl || '',
+      filename: asset.filename || Utils.getFilename(asset.resPath || asset.rawUrl || ''),
+      rect: {
+        x: Math.max(0, Math.min(0.98, rect.x)),
+        y: Math.max(0, Math.min(0.98, rect.y)),
+        w: Math.max(0.02, Math.min(1 - rect.x, rect.w)),
+        h: Math.max(0.02, Math.min(1 - rect.y, rect.h)),
+      },
+      z: z != null ? z : 20,
+    };
+    AppState.scene.events.push(event);
+    AppState.autosave();
+    selectPlacedItem(itemId);
+    EventBus.emit('timeline:updated');
+    EventBus.emit('preview:updated');
+  }
+
+  function removePlaceEvent(itemId) {
+    const idx = AppState.scene.events.findIndex(e => e.type === 'place' && e.item_id === itemId);
+    if (idx === -1) return;
+    AppState.saveToHistory();
+    AppState.scene.events.splice(idx, 1);
+    if (AppState.ui.selectedPlacedId === itemId) {
+      AppState.ui.selectedPlacedId = null;
+    }
+    AppState.autosave();
+    EventBus.emit('timeline:updated');
+    EventBus.emit('preview:updated');
+  }
+
+  function selectPlacedItem(itemId) {
+    AppState.ui.selectedPlacedId = itemId;
+    AppState.ui.selectedEventIndex = null;
+    renderPlacedItems();
+  }
+
+  function deselectPlaced() {
+    if (AppState.ui.selectedPlacedId == null) return;
+    AppState.ui.selectedPlacedId = null;
+    renderPlacedItems();
+  }
+
+  function _getContainerRect() {
+    return document.getElementById('preview-container').getBoundingClientRect();
+  }
+
+  function startDrag(e, event) {
+    const cr = _getContainerRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const origRect = { ...event.rect };
+    let saved = false;
+
+    function onMove(ev) {
+      if (!saved) {
+        AppState.saveToHistory();
+        saved = true;
+      }
+      const dx = (ev.clientX - startX) / cr.width;
+      const dy = (ev.clientY - startY) / cr.height;
+      event.rect.x = Math.max(0, Math.min(1 - event.rect.w, origRect.x + dx));
+      event.rect.y = Math.max(0, Math.min(1 - event.rect.h, origRect.y + dy));
+      renderPlacedItems();
+    }
+
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      AppState.autosave();
+      EventBus.emit('timeline:updated');
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }
+
+  function startResize(e, event, dir) {
+    const cr = _getContainerRect();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const origRect = { ...event.rect };
+    let saved = false;
+
+    function onMove(ev) {
+      if (!saved) {
+        AppState.saveToHistory();
+        saved = true;
+      }
+      const dx = (ev.clientX - startX) / cr.width;
+      const dy = (ev.clientY - startY) / cr.height;
+
+      let { x, y, w, h } = origRect;
+
+      if (dir.includes('e')) { w = Math.max(0.02, w + dx); }
+      if (dir.includes('w')) { const nw = Math.max(0.02, w - dx); x = x + w - nw; w = nw; }
+      if (dir.includes('s')) { h = Math.max(0.02, h + dy); }
+      if (dir.includes('n')) { const nh = Math.max(0.02, h - dy); y = y + h - nh; h = nh; }
+
+      x = Math.max(0, Math.min(0.98, x));
+      y = Math.max(0, Math.min(0.98, y));
+      w = Math.max(0.02, Math.min(1 - x, w));
+      h = Math.max(0.02, Math.min(1 - y, h));
+
+      event.rect.x = x;
+      event.rect.y = y;
+      event.rect.w = w;
+      event.rect.h = h;
+
+      renderPlacedItems();
+    }
+
+    function onUp() {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      AppState.autosave();
+      EventBus.emit('timeline:updated');
+    }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
   }
 
   function applyBackground(asset) {
@@ -258,7 +474,6 @@ window.PreviewPanel = (() => {
   }
 
   function showCharacterOptions(position) {
-    // Remove any existing popup
     if (charOptionsPopup) {
       charOptionsPopup.remove();
       charOptionsPopup = null;
@@ -275,7 +490,6 @@ window.PreviewPanel = (() => {
     popup.style.left = slotRect.left + 'px';
     popup.style.top = (slotRect.bottom + 4) + 'px';
 
-    // Position change section
     const posLabel = document.createElement('div');
     posLabel.style.cssText = 'font-size:11px;color:#a0aec0;margin-bottom:4px;';
     posLabel.textContent = '위치 변경';
@@ -298,7 +512,6 @@ window.PreviewPanel = (() => {
     });
     popup.appendChild(posRow);
 
-    // Expression change if character has expressions
     if (char) {
       const charData = AppState.assets.characters.find(
         (c) => c.id === (char.character_id || char.id)
@@ -326,7 +539,6 @@ window.PreviewPanel = (() => {
       }
     }
 
-    // Hide character button
     if (char) {
       const hideBtn = document.createElement('button');
       hideBtn.textContent = '캐릭터 퇴장';
@@ -375,7 +587,6 @@ window.PreviewPanel = (() => {
     AppState.saveToHistory();
     const char = AppState.scene.preview.characters[position];
     if (!char) return;
-    // Update rawUrl if charData has expressions map
     if (charData && charData.expressions && charData.expressions[expression]) {
       char.rawUrl = charData.expressions[expression].rawUrl || char.rawUrl;
       char.resPath = charData.expressions[expression].resPath || char.resPath;
@@ -410,5 +621,5 @@ window.PreviewPanel = (() => {
     EventBus.emit('timeline:updated');
   }
 
-  return { init, render, renderBackground, renderCharacters, renderDialogue, handleDrop, applyBackground, applyCharacter, showCharacterOptions };
+  return { init, render, renderBackground, renderCharacters, renderPlacedItems, renderDialogue, handleDrop, applyBackground, applyCharacter, showCharacterOptions, addPlaceEvent, selectPlacedItem, deselectPlaced };
 })();

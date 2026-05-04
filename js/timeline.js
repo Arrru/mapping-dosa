@@ -9,6 +9,7 @@ window.TimelinePanel = (() => {
     expression_change: { label: '표정 변경',   icon: '😊',  color: '#f6ad55' },
     dialogue:          { label: '대사',        icon: '💬',  color: '#38b2ac' },
     choice:            { label: '선택지',      icon: '🔀',  color: '#fc8181' },
+    place:             { label: '자유 배치',   icon: '🧩',  color: '#9f7aea' },
   };
 
   let dragIndex = null;
@@ -119,6 +120,8 @@ window.TimelinePanel = (() => {
       }
       case 'choice':
         return ((event.options || []).length) + '개 선택지';
+      case 'place':
+        return (event.asset_kind || 'image') + ' · ' + (event.path ? Utils.getFilename(event.path) : '(미설정)');
       default:
         return '';
     }
@@ -137,6 +140,9 @@ window.TimelinePanel = (() => {
     if (evtToDelete && evtToDelete.type === 'character_show') {
       const pos = evtToDelete.position || 'center';
       AppState.scene.preview.characters[pos] = null;
+    }
+    if (evtToDelete && evtToDelete.type === 'place' && AppState.ui.selectedPlacedId === evtToDelete.item_id) {
+      AppState.ui.selectedPlacedId = null;
     }
     AppState.scene.events.splice(index, 1);
     if (AppState.ui.selectedEventIndex === index) {
@@ -231,6 +237,7 @@ window.TimelinePanel = (() => {
       expression_change: { type, character_id: null, expression: 'normal', path: '' },
       dialogue:          { type, speaker: '', text: '', display_style: 'normal' },
       choice:            { type, prompt: '', options: [{ text: '', next_scene: '' }] },
+      place:             { type, item_id: 'pi_' + id, asset_kind: 'image', asset_id: null, path: '', rawUrl: '', rect: { x: 0.3, y: 0.3, w: 0.2, h: 0.2 }, z: 20 },
     };
     const event = { id, ...(defaults[type] || { type }) };
     AppState.scene.events.push(event);
@@ -281,6 +288,15 @@ window.TimelinePanel = (() => {
     } else if (event.type === 'choice') {
       html += buildTextInput('prompt', '선택지 프롬프트', event.prompt || '');
       html += buildChoiceOptions(event.options || []);
+    } else if (event.type === 'place') {
+      html += buildPlaceKindSelector('asset_kind', event.asset_kind || 'image');
+      html += buildPlaceAssetSelector('asset_id', event.asset_kind || 'image', event.asset_id);
+      const r = event.rect || { x: 0.3, y: 0.3, w: 0.2, h: 0.2 };
+      html += buildNumberInput('rect_x', 'X (0~1)', r.x, 0.01);
+      html += buildNumberInput('rect_y', 'Y (0~1)', r.y, 0.01);
+      html += buildNumberInput('rect_w', 'W (0~1)', r.w, 0.01);
+      html += buildNumberInput('rect_h', 'H (0~1)', r.h, 0.01);
+      html += buildNumberInput('z', 'Z (레이어)', event.z != null ? event.z : 20, 1);
     }
 
     content.innerHTML = html;
@@ -381,6 +397,46 @@ window.TimelinePanel = (() => {
     return `<div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;">
       <input type="checkbox" name="${escHtml(name)}" id="cb_${escHtml(name)}"${checked ? ' checked' : ''} style="accent-color:#4a90d9;width:14px;height:14px;">
       <label for="cb_${escHtml(name)}" style="font-size:13px;color:#e2e8f0;cursor:pointer;">${escHtml(label)}</label>
+    </div>`;
+  }
+
+  function buildNumberInput(name, label, value, step) {
+    return `<div style="margin-bottom:12px;">
+      <label style="display:block;font-size:12px;color:#a0aec0;margin-bottom:4px;">${escHtml(label)}</label>
+      <input type="number" name="${escHtml(name)}" value="${escHtml(String(value))}" step="${step}" min="0" max="1"
+        style="width:100%;padding:6px 8px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:13px;box-sizing:border-box;">
+    </div>`;
+  }
+
+  function buildPlaceKindSelector(name, selected) {
+    const kinds = ['background', 'character', 'ui', 'image'];
+    const opts = kinds.map(k => `<option value="${k}"${k === selected ? ' selected' : ''}>${escHtml(k)}</option>`).join('');
+    return `<div style="margin-bottom:12px;">
+      <label style="display:block;font-size:12px;color:#a0aec0;margin-bottom:4px;">에셋 종류</label>
+      <select name="${escHtml(name)}" style="width:100%;padding:6px 8px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:13px;">
+        ${opts}
+      </select>
+    </div>`;
+  }
+
+  function buildPlaceAssetSelector(name, kind, selectedId) {
+    const assetMap = {
+      background: AppState.assets.backgrounds,
+      character: AppState.assets.characters,
+      ui: AppState.assets.ui || [],
+      image: (AppState.assets.ui || []).concat(AppState.assets.backgrounds || []),
+    };
+    const assets = assetMap[kind] || [];
+    const opts = assets.map(a => {
+      const lbl = Utils.getFilename(a.resPath || a.rawUrl || a.id || '');
+      return `<option value="${escHtml(a.id)}"${a.id === selectedId ? ' selected' : ''}>${escHtml(lbl)}</option>`;
+    }).join('');
+    return `<div style="margin-bottom:12px;">
+      <label style="display:block;font-size:12px;color:#a0aec0;margin-bottom:4px;">에셋</label>
+      <select name="${escHtml(name)}" style="width:100%;padding:6px 8px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:13px;">
+        <option value="">-- 선택 --</option>
+        ${opts}
+      </select>
     </div>`;
   }
 
@@ -531,6 +587,35 @@ window.TimelinePanel = (() => {
           i++;
         }
         event.options = options;
+        break;
+      }
+      case 'place': {
+        const kind = get('asset_kind') || 'image';
+        event.asset_kind = kind;
+        const assetId = get('asset_id') || null;
+        event.asset_id = assetId;
+        const assetMap = {
+          background: AppState.assets.backgrounds,
+          character: AppState.assets.characters,
+          ui: AppState.assets.ui || [],
+          image: (AppState.assets.ui || []).concat(AppState.assets.backgrounds || []),
+        };
+        const asset = (assetMap[kind] || []).find(a => a.id === assetId);
+        if (asset) {
+          event.path = asset.resPath || '';
+          event.rawUrl = asset.rawUrl || '';
+          event.filename = Utils.getFilename(asset.resPath || asset.rawUrl || '');
+        }
+        const rx = parseFloat(get('rect_x'));
+        const ry = parseFloat(get('rect_y'));
+        const rw = parseFloat(get('rect_w'));
+        const rh = parseFloat(get('rect_h'));
+        if (!isNaN(rx)) event.rect.x = Math.max(0, Math.min(0.98, rx));
+        if (!isNaN(ry)) event.rect.y = Math.max(0, Math.min(0.98, ry));
+        if (!isNaN(rw)) event.rect.w = Math.max(0.02, Math.min(1, rw));
+        if (!isNaN(rh)) event.rect.h = Math.max(0.02, Math.min(1, rh));
+        const zv = parseFloat(get('z'));
+        if (!isNaN(zv)) event.z = zv;
         break;
       }
     }

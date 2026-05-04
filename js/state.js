@@ -15,6 +15,10 @@ window.AppState = (() => {
       characters: { left: null, center: null, right: null },
       bgm: null,
     },
+    // Free-form placement state — array of place items.
+    // Each item: { item_id, asset_kind, asset_id, path, rawUrl, filename,
+    //              rect:{x,y,w,h} (0~1 normalized), z, event_id }
+    placedItems: [],
   });
 
   const state = {
@@ -37,6 +41,7 @@ window.AppState = (() => {
     ui: {
       activeAssetTab: 'backgrounds',
       selectedEventIndex: null,
+      selectedPlacedId: null,
       recentAssets: [],
       isLoading: false,
       loadingMessage: '',

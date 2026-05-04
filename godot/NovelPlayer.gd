@@ -20,6 +20,7 @@ var _scene_id: String = ""
 var _waiting_for_input: bool = false
 var _waiting_for_choice: bool = false
 var _typewriter_active: bool = false
+var _placed_nodes: Dictionary = {}
 
 
 func load_scene(path: String) -> void:
@@ -101,6 +102,10 @@ func process_event(event: Dictionary) -> void:
 			_process_current()
 		"expression_change":
 			handle_expression_change(event)
+			_index += 1
+			_process_current()
+		"place":
+			handle_place(event)
 			_index += 1
 			_process_current()
 		"dialogue":
@@ -274,6 +279,46 @@ func typewriter_effect(label: RichTextLabel, text: String) -> void:
 
 	_typewriter_active = false
 	_waiting_for_input = true
+
+
+func handle_place(event: Dictionary) -> void:
+	var placed_layer := get_node_or_null("PlacedLayer")
+	if placed_layer == null:
+		placed_layer = Control.new()
+		placed_layer.name = "PlacedLayer"
+		placed_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(placed_layer)
+
+	var item_id: String = event.get("item_id", "")
+	var node: TextureRect
+	if item_id != "" and _placed_nodes.has(item_id):
+		node = _placed_nodes[item_id]
+	else:
+		node = TextureRect.new()
+		node.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		placed_layer.add_child(node)
+		if item_id != "":
+			_placed_nodes[item_id] = node
+
+	var tex := _load_texture(event.get("path", ""))
+	if tex:
+		node.texture = tex
+
+	var r: Dictionary = event.get("rect", {})
+	var rx: float = r.get("x", 0.0)
+	var ry: float = r.get("y", 0.0)
+	var rw: float = r.get("w", 0.1)
+	var rh: float = r.get("h", 0.1)
+	node.anchor_left   = rx
+	node.anchor_top    = ry
+	node.anchor_right  = rx + rw
+	node.anchor_bottom = ry + rh
+	node.offset_left   = 0
+	node.offset_top    = 0
+	node.offset_right  = 0
+	node.offset_bottom = 0
+	node.z_index = int(event.get("z", 20))
+	# TODO: handle_place_hide(event) — 추후 확장 가능
 
 
 func _get_char_node(position: String) -> TextureRect:

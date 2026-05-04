@@ -17,6 +17,9 @@ window.Exporter = (() => {
       if (evt.asset_id == null && ['background', 'bgm_play', 'sfx_play', 'character_show', 'expression_change'].includes(evt.type)) {
         warnings.push(`이벤트 ${evt.id} (${evt.type})에 asset_id가 없습니다.`);
       }
+      if (evt.type === 'place' && !evt.asset_id && !evt.path) {
+        warnings.push(`이벤트 ${evt.id} (place)에 asset_id와 path가 모두 없습니다.`);
+      }
     }
     if (warnings.length > 0) {
       console.warn('[Exporter] scene.json 경고:\n' + warnings.join('\n'));
@@ -25,7 +28,7 @@ window.Exporter = (() => {
     const output = {
       scene_id: scene.id,
       title: scene.title,
-      version: '1.0',
+      version: '1.1',
       created_at: new Date().toISOString(),
       events: scene.events,
     };
@@ -143,6 +146,7 @@ window.Exporter = (() => {
         title: parsed.title || '가져온 장면',
         events: parsed.events,
         preview: AppState.scene.preview || { background: null, characters: { left: null, center: null, right: null }, bgm: null },
+        placedItems: [],
       };
       if (window.EventBus) EventBus.emit('scene:loaded', AppState.scene);
       return { success: true };
