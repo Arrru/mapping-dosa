@@ -13,7 +13,6 @@ window.PreviewPanel = (() => {
   };
 
   let charOptionsPopup = null;
-  let _dragState = null;
 
   function init() {
     const container = document.getElementById('preview-container');
@@ -138,6 +137,8 @@ window.PreviewPanel = (() => {
         const img = document.createElement('img');
         img.src = event.rawUrl;
         img.alt = event.asset_id || itemId;
+        img.draggable = false;
+        img.ondragstart = () => false;
         div.appendChild(img);
       }
 
@@ -257,6 +258,15 @@ window.PreviewPanel = (() => {
     }
   }
 
+  function centerRect(cx, cy, w, h) {
+    return {
+      x: Math.max(0, Math.min(1 - w, cx - w / 2)),
+      y: Math.max(0, Math.min(1 - h, cy - h / 2)),
+      w,
+      h,
+    };
+  }
+
   function handleDrop(e) {
     let asset;
     try {
@@ -266,30 +276,23 @@ window.PreviewPanel = (() => {
     }
     if (!asset) return;
 
+    const container = document.getElementById('preview-container');
+    const cr = container.getBoundingClientRect();
+    const cx = (e.clientX - cr.left) / cr.width;
+    const cy = (e.clientY - cr.top) / cr.height;
+
     if (asset.type === 'background') {
-      if (e.shiftKey) {
-        const container = document.getElementById('preview-container');
-        const cr = container.getBoundingClientRect();
-        const nx = Math.max(0, Math.min(1, (e.clientX - cr.left) / cr.width));
-        const ny = Math.max(0, Math.min(1, (e.clientY - cr.top) / cr.height));
-        addPlaceEvent(asset, { x: Math.max(0, nx - 0.15), y: Math.max(0, ny - 0.15), w: 0.3, h: 0.3 }, 0);
-      } else {
+      const hasBg = AppState.scene.preview.background != null;
+      if (!hasBg) {
         applyBackground(asset);
-        EventBus.emit('preview:updated');
-        EventBus.emit('timeline:updated');
       }
+      addPlaceEvent(asset, hasBg
+        ? centerRect(cx, cy, 0.4, 0.4)
+        : { x: 0, y: 0, w: 1, h: 1 }, 0);
     } else if (asset.type === 'character') {
-      const container = document.getElementById('preview-container');
-      const cr = container.getBoundingClientRect();
-      const nx = Math.max(0, Math.min(0.75, (e.clientX - cr.left) / cr.width - 0.125));
-      const ny = Math.max(0, Math.min(0.3, (e.clientY - cr.top) / cr.height - 0.35));
-      addPlaceEvent(asset, { x: nx, y: ny, w: 0.25, h: 0.7 }, 10);
+      addPlaceEvent(asset, centerRect(cx, cy, 0.25, 0.7), 10);
     } else if (asset.type === 'ui' || asset.type === 'image') {
-      const container = document.getElementById('preview-container');
-      const cr = container.getBoundingClientRect();
-      const nx = Math.max(0, Math.min(0.8, (e.clientX - cr.left) / cr.width - 0.1));
-      const ny = Math.max(0, Math.min(0.9, (e.clientY - cr.top) / cr.height - 0.05));
-      addPlaceEvent(asset, { x: nx, y: ny, w: 0.2, h: 0.1 }, 20);
+      addPlaceEvent(asset, centerRect(cx, cy, 0.2, 0.2), 20);
     } else if (asset.type === 'bgm' || asset.type === 'sfx') {
       AppState.saveToHistory();
       AppState.scene.events.push({

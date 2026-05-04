@@ -899,6 +899,13 @@ img {
   pointer-events: auto;
   cursor: move;
   user-select: none;
+  outline: 1px dashed transparent;
+  outline-offset: -1px;
+  transition: outline-color 0.15s;
+}
+
+.placed-item:hover {
+  outline-color: rgba(91, 125, 232, 0.5);
 }
 
 .placed-item img {
@@ -910,7 +917,8 @@ img {
   user-drag: none;
 }
 
-.placed-item--selected {
+.placed-item--selected,
+.placed-item--selected:hover {
   outline: 2px solid var(--accent);
   outline-offset: 0;
 }
