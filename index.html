@@ -327,6 +327,98 @@
             </div>
           </div>
         </div>
+
+      <!-- ─── ALIGNMENT PANEL ──────────────────── -->
+      <div id="align-panel" class="panel-section panel-section--align" aria-label="정렬 도구">
+        <div class="align-panel-header">
+          <span class="panel-title">정렬 도구</span>
+          <span id="align-target-count" class="align-count">배치 0개</span>
+        </div>
+
+        <!-- 정렬 (Align) -->
+        <div class="align-group">
+          <span class="align-group-label">정렬</span>
+          <div class="align-btn-row">
+            <button class="btn-align" data-action="align_left" title="왼쪽 정렬">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <line x1="2" y1="2" x2="2" y2="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <rect x="4" y="4" width="6" height="3" rx="1" fill="currentColor" opacity=".7"/>
+                <rect x="4" y="9" width="9" height="3" rx="1" fill="currentColor" opacity=".7"/>
+              </svg>
+            </button>
+            <button class="btn-align" data-action="align_center_horizontal" title="수평 가운데 정렬">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <line x1="8" y1="2" x2="8" y2="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <rect x="4" y="4" width="8" height="3" rx="1" fill="currentColor" opacity=".7"/>
+                <rect x="2" y="9" width="12" height="3" rx="1" fill="currentColor" opacity=".7"/>
+              </svg>
+            </button>
+            <button class="btn-align" data-action="align_right" title="오른쪽 정렬">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <line x1="14" y1="2" x2="14" y2="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <rect x="6" y="4" width="6" height="3" rx="1" fill="currentColor" opacity=".7"/>
+                <rect x="3" y="9" width="9" height="3" rx="1" fill="currentColor" opacity=".7"/>
+              </svg>
+            </button>
+            <button class="btn-align" data-action="align_top" title="위쪽 정렬">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <line x1="2" y1="2" x2="14" y2="2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <rect x="4" y="4" width="3" height="6" rx="1" fill="currentColor" opacity=".7"/>
+                <rect x="9" y="4" width="3" height="9" rx="1" fill="currentColor" opacity=".7"/>
+              </svg>
+            </button>
+            <button class="btn-align" data-action="align_middle_vertical" title="수직 가운데 정렬">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <line x1="2" y1="8" x2="14" y2="8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <rect x="4" y="4" width="3" height="8" rx="1" fill="currentColor" opacity=".7"/>
+                <rect x="9" y="2" width="3" height="12" rx="1" fill="currentColor" opacity=".7"/>
+              </svg>
+            </button>
+            <button class="btn-align" data-action="align_bottom" title="아래쪽 정렬">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                <line x1="2" y1="14" x2="14" y2="14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                <rect x="4" y="6" width="3" height="6" rx="1" fill="currentColor" opacity=".7"/>
+                <rect x="9" y="3" width="3" height="9" rx="1" fill="currentColor" opacity=".7"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- 균등 배치 (Distribute) -->
+        <div class="align-group">
+          <span class="align-group-label">균등 배치 <span class="align-group-hint">(3개 이상)</span></span>
+          <div class="align-btn-row">
+            <button class="btn-align btn-align--labeled" data-action="distribute_horizontal" title="수평 균등 배치">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <line x1="1" y1="2" x2="1" y2="12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <line x1="13" y1="2" x2="13" y2="12" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <rect x="4" y="4" width="2" height="6" rx="1" fill="currentColor" opacity=".7"/>
+                <rect x="8" y="4" width="2" height="6" rx="1" fill="currentColor" opacity=".7"/>
+              </svg>
+              수평
+            </button>
+            <button class="btn-align btn-align--labeled" data-action="distribute_vertical" title="수직 균등 배치">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                <line x1="2" y1="1" x2="12" y2="1" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <line x1="2" y1="13" x2="12" y2="13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <rect x="4" y="4" width="6" height="2" rx="1" fill="currentColor" opacity=".7"/>
+                <rect x="4" y="8" width="6" height="2" rx="1" fill="currentColor" opacity=".7"/>
+              </svg>
+              수직
+            </button>
+          </div>
+        </div>
+
+        <!-- 그리드 배치 (Grid) -->
+        <div class="align-group align-group--last">
+          <span class="align-group-label">그리드 배치</span>
+          <div class="align-grid-row">
+            <span class="align-grid-label">열 수</span>
+            <input id="align-grid-cols" class="align-grid-input" type="number" min="1" max="10" value="3" aria-label="열 수" />
+            <button id="btn-align-grid" class="btn btn-secondary btn-sm" style="flex:1;">배치 적용</button>
+          </div>
+        </div>
+      </div>
       </aside>
 
       <!-- ─── PREVIEW PANEL (CENTER) ──────────────── -->
@@ -441,6 +533,7 @@
 
   <!-- ─── SCRIPTS ──────────────────────────────── -->
   <script src="js/alignment.js?v=1"></script>
+  <script src="js/alignment-panel.js?v=1"></script>
   <script src="js/utils.js?v=16"></script>
   <script src="js/state.js?v=16"></script>
   <script src="js/github-api.js?v=16"></script>

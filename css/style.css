@@ -1757,3 +1757,120 @@ img {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
+
+/* ─── ALIGNMENT PANEL ────────────────────────────────────────── */
+.panel-section--align {
+  flex-shrink: 0;
+  border-top: 1px solid var(--border);
+  padding: var(--sp-3) var(--sp-3) var(--sp-3);
+  background: var(--bg-base);
+}
+
+.align-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.align-count {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.align-group {
+  margin-bottom: 10px;
+}
+
+.align-group--last {
+  margin-bottom: 0;
+}
+
+.align-group-label {
+  display: block;
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+  margin-bottom: var(--sp-1);
+}
+
+.align-group-hint {
+  opacity: .6;
+  font-size: 9px;
+}
+
+.align-btn-row {
+  display: flex;
+  gap: 3px;
+}
+
+.btn-align {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 5px 4px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  font-size: 11px;
+  cursor: pointer;
+  transition:
+    color var(--transition-fast),
+    border-color var(--transition-fast),
+    background var(--transition-fast);
+  min-width: 0;
+}
+
+.btn-align:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-dim);
+}
+
+.btn-align:active {
+  transform: scale(0.94);
+}
+
+.btn-align:disabled {
+  opacity: .35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.btn-align--labeled {
+  gap: 5px;
+  font-size: 11px;
+}
+
+.align-grid-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.align-grid-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.align-grid-input {
+  width: 44px;
+  padding: 4px 6px;
+  background: var(--bg-input);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  font-size: 12px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.align-grid-input:focus {
+  outline: none;
+  border-color: var(--border-focus);
+}

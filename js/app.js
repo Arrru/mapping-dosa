@@ -768,6 +768,9 @@ window.App = (() => {
     if (window.PreviewPanel) PreviewPanel.init();
     if (window.TimelinePanel) TimelinePanel.init();
 
+    // Alignment panel
+    if (window.AlignmentPanel) AlignmentPanel.init();
+
     // 7-11. Setup
     setupEventBusListeners();
     setupKeyboardShortcuts();
