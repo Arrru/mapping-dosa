@@ -57,7 +57,14 @@ window.TimelinePanel = (() => {
       const idx = parseInt(li.dataset.index, 10);
       if (e.ctrlKey || e.metaKey) {
         // Ctrl+클릭: 멀티셀렉트 토글
-        const sel = AppState.ui.selectedEventIndices || [];
+        // 첫 Ctrl+클릭 시 기존 단일 선택(selectedEventIndex)도 함께 포함
+        let sel = AppState.ui.selectedEventIndices || [];
+        if (sel.length === 0) {
+          const existing = AppState.ui.selectedEventIndex;
+          if (existing !== null && existing !== undefined && existing !== idx) {
+            sel = [existing];
+          }
+        }
         const pos = sel.indexOf(idx);
         AppState.ui.selectedEventIndices = pos === -1 ? sel.concat(idx) : sel.filter(function(i){ return i !== idx; });
         render();
