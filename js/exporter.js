@@ -28,8 +28,9 @@ window.Exporter = (() => {
     const output = {
       scene_id: scene.id,
       title: scene.title,
-      version: '1.1',
+      version: '1.2',
       created_at: new Date().toISOString(),
+      groups: scene.groups || [],
       events: scene.events,
     };
     return JSON.stringify(output, null, 2);
@@ -145,6 +146,7 @@ window.Exporter = (() => {
         id: parsed.scene_id,
         title: parsed.title || '가져온 장면',
         events: parsed.events,
+        groups: Array.isArray(parsed.groups) ? parsed.groups : [],
         preview: AppState.scene.preview || { background: null, characters: { left: null, center: null, right: null }, bgm: null },
         placedItems: [],
       };

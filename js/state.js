@@ -10,6 +10,7 @@ window.AppState = (() => {
     id: Utils.generateId(),
     title: '새 장면',
     events: [],
+    groups: [],
     preview: {
       background: null,
       characters: { left: null, center: null, right: null },
@@ -41,6 +42,7 @@ window.AppState = (() => {
     ui: {
       activeAssetTab: 'backgrounds',
       selectedEventIndex: null,
+      selectedEventIndices: [],
       selectedPlacedId: null,
       selectedPlacedIds: [],
       recentAssets: [],
@@ -56,6 +58,7 @@ window.AppState = (() => {
       this.loadConfig();
       const saved = this.loadAutosave();
       if (saved) {
+        if (!saved.groups) saved.groups = [];
         this.scene = saved;
       }
       try {

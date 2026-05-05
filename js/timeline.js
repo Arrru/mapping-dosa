@@ -24,6 +24,29 @@ window.TimelinePanel = (() => {
 
     const list = document.getElementById('timeline-list');
     list.addEventListener('click', (e) => {
+      // ── 그룹 헤더 영역 ──────────────────────────────
+      const groupToggleBtn = e.target.closest('.tl-group-toggle');
+      if (groupToggleBtn) {
+        e.stopPropagation();
+        if (window.TimelineGroups) TimelineGroups.toggle_group_collapsed(groupToggleBtn.dataset.groupId);
+        return;
+      }
+      const ungroupBtn = e.target.closest('.tl-group-ungroup');
+      if (ungroupBtn) {
+        e.stopPropagation();
+        if (window.TimelineGroups) TimelineGroups.ungroup_item(ungroupBtn.dataset.groupId);
+        return;
+      }
+      // 그룹명 input 클릭은 전파 차단만
+      if (e.target.classList.contains('tl-group-name')) return;
+      // 그룹 헤더 본체 클릭 → 접기/펼치기
+      const groupLi = e.target.closest('li[data-group-id]');
+      if (groupLi) {
+        if (window.TimelineGroups) TimelineGroups.toggle_group_collapsed(groupLi.dataset.groupId);
+        return;
+      }
+
+      // ── 일반 이벤트 항목 ────────────────────────────
       const li = e.target.closest('li[data-index]');
       if (!li) return;
       const delBtn = e.target.closest('.timeline-delete-btn');
@@ -31,8 +54,30 @@ window.TimelinePanel = (() => {
         deleteEvent(parseInt(li.dataset.index, 10));
         return;
       }
-      selectEvent(parseInt(li.dataset.index, 10));
+      const idx = parseInt(li.dataset.index, 10);
+      if (e.ctrlKey || e.metaKey) {
+        // Ctrl+클릭: 멀티셀렉트 토글
+        const sel = AppState.ui.selectedEventIndices || [];
+        const pos = sel.indexOf(idx);
+        AppState.ui.selectedEventIndices = pos === -1 ? sel.concat(idx) : sel.filter(function(i){ return i !== idx; });
+        render();
+      } else {
+        AppState.ui.selectedEventIndices = [];
+        selectEvent(idx);
+      }
     });
+
+    // 그룹화 버튼
+    const groupBtn = document.getElementById('btn-group-selected');
+    if (groupBtn) {
+      groupBtn.addEventListener('click', () => {
+        const sel = AppState.ui.selectedEventIndices || [];
+        if (sel.length < 2) { alert('2개 이상의 이벤트를 Ctrl+클릭으로 선택하세요.'); return; }
+        const name = prompt('그룹 이름', '새 그룹');
+        if (name === null) return;
+        if (window.TimelineGroups) TimelineGroups.group_selected_items(name || '새 그룹');
+      });
+    }
 
     setupDragReorder();
 
@@ -46,6 +91,18 @@ window.TimelinePanel = (() => {
     list.innerHTML = '';
 
     const events = AppState.scene.events;
+
+    // 이벤트 수 표시 갱신
+    const countEl = document.getElementById('timeline-event-count');
+    if (countEl) countEl.textContent = events.length + ' 이벤트';
+
+    // 그룹화 버튼 활성 상태 갱신
+    const groupBtn = document.getElementById('btn-group-selected');
+    if (groupBtn) {
+      const selCount = (AppState.ui.selectedEventIndices || []).length;
+      groupBtn.disabled = selCount < 2;
+    }
+
     if (events.length === 0) {
       const empty = document.createElement('li');
       empty.className = 'timeline-empty';
@@ -55,47 +112,117 @@ window.TimelinePanel = (() => {
       return;
     }
 
-    events.forEach((event, index) => {
-      const cfg = EVENT_CONFIGS[event.type] || { label: event.type, icon: '?', color: '#718096' };
-      const isSelected = AppState.ui.selectedEventIndex === index;
+    const items = window.TimelineGroups
+      ? TimelineGroups.get_visible_timeline_items()
+      : events.map((ev, i) => ({ kind: 'event', eventIndex: i, event: ev, groupId: null, indented: false }));
 
-      const li = document.createElement('li');
-      li.dataset.index = index;
-      li.draggable = true;
-      li.className = 'timeline-event' + (isSelected ? ' selected' : '');
-      li.style.cssText = `display:flex;align-items:center;gap:8px;padding:8px 10px;margin-bottom:2px;border-radius:4px;cursor:pointer;border-left:3px solid ${cfg.color};background:${isSelected ? '#2d3748' : 'transparent'};list-style:none;user-select:none;`;
-
-      const icon = document.createElement('span');
-      icon.style.cssText = 'font-size:14px;flex-shrink:0;';
-      icon.textContent = cfg.icon;
-
-      const info = document.createElement('div');
-      info.style.cssText = 'flex:1;min-width:0;';
-
-      const labelEl = document.createElement('div');
-      labelEl.style.cssText = 'font-size:11px;color:#a0aec0;';
-      labelEl.textContent = cfg.label;
-
-      const summary = document.createElement('div');
-      summary.style.cssText = 'font-size:13px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
-      summary.textContent = getEventSummary(event);
-
-      info.appendChild(labelEl);
-      info.appendChild(summary);
-
-      const delBtn = document.createElement('button');
-      delBtn.className = 'timeline-delete-btn';
-      delBtn.textContent = '×';
-      delBtn.title = '삭제';
-      delBtn.style.cssText = 'background:none;border:none;color:#718096;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;';
-      delBtn.addEventListener('mouseenter', () => { delBtn.style.color = '#fc8181'; });
-      delBtn.addEventListener('mouseleave', () => { delBtn.style.color = '#718096'; });
-
-      li.appendChild(icon);
-      li.appendChild(info);
-      li.appendChild(delBtn);
-      list.appendChild(li);
+    items.forEach((item) => {
+      if (item.kind === 'group_header') {
+        list.appendChild(renderGroupHeader(item));
+      } else {
+        list.appendChild(renderEventItem(item));
+      }
     });
+  }
+
+  /** 이벤트 <li> 항목 생성 */
+  function renderEventItem({ eventIndex, event, indented }) {
+    const cfg = EVENT_CONFIGS[event.type] || { label: event.type, icon: '?', color: '#718096' };
+    const isSelected   = AppState.ui.selectedEventIndex === eventIndex;
+    const isMultiSel   = (AppState.ui.selectedEventIndices || []).includes(eventIndex);
+
+    const li = document.createElement('li');
+    li.dataset.index = eventIndex;
+    li.draggable = true;
+
+    let cls = 'timeline-event';
+    if (isSelected)  cls += ' selected';
+    if (isMultiSel)  cls += ' tl-multi-selected';
+    if (indented)    cls += ' tl-event-indented';
+    li.className = cls;
+
+    const paddingLeft = indented ? '28px' : '10px';
+    let bg = 'transparent';
+    if (isSelected)      bg = '#2d3748';
+    else if (isMultiSel) bg = '#1e2a3a';
+
+    li.style.cssText = `display:flex;align-items:center;gap:8px;padding:8px 10px 8px ${paddingLeft};margin-bottom:2px;border-radius:4px;cursor:pointer;border-left:3px solid ${cfg.color};background:${bg};list-style:none;user-select:none;`;
+
+    const icon = document.createElement('span');
+    icon.style.cssText = 'font-size:14px;flex-shrink:0;';
+    icon.textContent = cfg.icon;
+
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:0;';
+
+    const labelEl = document.createElement('div');
+    labelEl.style.cssText = 'font-size:11px;color:#a0aec0;';
+    labelEl.textContent = cfg.label;
+
+    const summary = document.createElement('div');
+    summary.style.cssText = 'font-size:13px;color:#e2e8f0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;';
+    summary.textContent = getEventSummary(event);
+
+    info.appendChild(labelEl);
+    info.appendChild(summary);
+
+    const delBtn = document.createElement('button');
+    delBtn.className = 'timeline-delete-btn';
+    delBtn.textContent = '×';
+    delBtn.title = '삭제';
+    delBtn.style.cssText = 'background:none;border:none;color:#718096;font-size:16px;cursor:pointer;padding:0 2px;flex-shrink:0;line-height:1;';
+    delBtn.addEventListener('mouseenter', () => { delBtn.style.color = '#fc8181'; });
+    delBtn.addEventListener('mouseleave', () => { delBtn.style.color = '#718096'; });
+
+    li.appendChild(icon);
+    li.appendChild(info);
+    li.appendChild(delBtn);
+    return li;
+  }
+
+  /** 그룹 헤더 <li> 생성 */
+  function renderGroupHeader({ group, eventCount }) {
+    const summary = window.TimelineGroups ? TimelineGroups.get_group_summary(group) : '';
+
+    const li = document.createElement('li');
+    li.dataset.groupId = group.id;
+    li.className = 'tl-group-header' + (group.collapsed ? ' tl-group-collapsed' : '');
+
+    // ▸/▾ 접기 버튼
+    const toggleBtn = document.createElement('button');
+    toggleBtn.className = 'tl-group-toggle';
+    toggleBtn.dataset.groupId = group.id;
+    toggleBtn.title = group.collapsed ? '펼치기' : '접기';
+    toggleBtn.textContent = group.collapsed ? '▸' : '▾';
+
+    // 그룹명 인라인 편집
+    const nameInput = document.createElement('input');
+    nameInput.className = 'tl-group-name';
+    nameInput.type = 'text';
+    nameInput.value = group.name;
+    nameInput.addEventListener('blur', () => {
+      group.name = nameInput.value.trim() || '새 그룹';
+      AppState.autosave();
+    });
+    nameInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') nameInput.blur(); });
+
+    // 요약 배지
+    const badge = document.createElement('span');
+    badge.className = 'tl-group-badge';
+    badge.textContent = group.collapsed ? summary : eventCount + '개';
+
+    // 그룹 해제 버튼
+    const ungroupBtn = document.createElement('button');
+    ungroupBtn.className = 'tl-group-ungroup';
+    ungroupBtn.dataset.groupId = group.id;
+    ungroupBtn.title = '그룹 해제';
+    ungroupBtn.textContent = '해제';
+
+    li.appendChild(toggleBtn);
+    li.appendChild(nameInput);
+    li.appendChild(badge);
+    li.appendChild(ungroupBtn);
+    return li;
   }
 
   function getEventSummary(event) {
@@ -152,6 +279,15 @@ window.TimelinePanel = (() => {
     } else if (AppState.ui.selectedEventIndex > index) {
       AppState.ui.selectedEventIndex -= 1;
     }
+    // 멀티셀렉트 인덱스 보정
+    AppState.ui.selectedEventIndices = (AppState.ui.selectedEventIndices || [])
+      .filter((i) => i !== index)
+      .map((i) => (i > index ? i - 1 : i));
+    // 빈 그룹 정리
+    if (AppState.scene.groups && AppState.scene.groups.length > 0) {
+      const usedIds = new Set(AppState.scene.events.filter((e) => e.groupId).map((e) => e.groupId));
+      AppState.scene.groups = AppState.scene.groups.filter((g) => usedIds.has(g.id));
+    }
     AppState.autosave();
     render();
     EventBus.emit('timeline:updated');
@@ -176,6 +312,13 @@ window.TimelinePanel = (() => {
         AppState.ui.selectedEventIndex = sel + 1;
       }
     }
+    // 멀티셀렉트 인덱스 보정
+    AppState.ui.selectedEventIndices = (AppState.ui.selectedEventIndices || []).map((i) => {
+      if (i === fromIndex) return toIndex;
+      if (fromIndex < toIndex && i > fromIndex && i <= toIndex) return i - 1;
+      if (fromIndex > toIndex && i >= toIndex && i < fromIndex) return i + 1;
+      return i;
+    });
 
     AppState.autosave();
     render();
@@ -681,6 +824,8 @@ window.TimelinePanel = (() => {
     list.addEventListener('dragstart', (e) => {
       const li = e.target.closest('li[data-index]');
       if (!li) return;
+      // 그룹 헤더 행은 드래그 불가 (그룹 헤더는 data-group-id만 가짐)
+      if (li.dataset.groupId) { e.preventDefault(); return; }
       dragIndex = parseInt(li.dataset.index, 10);
       li.style.opacity = '0.5';
       e.dataTransfer.effectAllowed = 'move';
