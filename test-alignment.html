@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AlignmentUtils 테스트</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --panel: #1a1d27;
+      --border: #2a2d3a;
+      --text: #c8ccd8;
+      --text-dim: #6b7080;
+      --pass: #4ade80;
+      --fail: #f87171;
+      --accent: #5b7de8;
+      --warn: #fbbf24;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; padding: 24px; }
+    h1 { font-size: 18px; font-weight: 600; margin-bottom: 4px; color: #fff; }
+    .subtitle { color: var(--text-dim); margin-bottom: 24px; font-size: 12px; }
+    .suite { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+    .suite-header { padding: 12px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .suite-name { font-weight: 600; color: #fff; font-size: 14px; }
+    .suite-count { font-size: 11px; color: var(--text-dim); }
+    .test-row { padding: 10px 16px; border-bottom: 1px solid var(--border); display: grid; grid-template-columns: 20px 1fr; gap: 10px; align-items: start; }
+    .test-row:last-child { border-bottom: none; }
+    .icon { font-size: 14px; line-height: 1.4; }
+    .pass .icon::before { content: '✓'; color: var(--pass); }
+    .fail .icon::before { content: '✗'; color: var(--fail); }
+    .test-name { font-weight: 500; color: var(--text); margin-bottom: 2px; }
+    .test-detail { font-size: 11px; color: var(--text-dim); white-space: pre-wrap; }
+    .fail .test-detail { color: var(--fail); }
+    .summary { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 14px 16px; margin-bottom: 16px; display: flex; gap: 24px; align-items: center; }
+    .summary-item span { display: block; font-size: 11px; color: var(--text-dim); }
+    .summary-item strong { font-size: 22px; font-weight: 700; }
+    .summary-item.pass strong { color: var(--pass); }
+    .summary-item.fail strong { color: var(--fail); }
+    .summary-item.total strong { color: var(--accent); }
+    .canvas-wrap { margin-top: 24px; }
+    .canvas-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 8px; }
+    canvas { background: #1a1d27; border: 1px solid var(--border); border-radius: 6px; display: block; }
+  </style>
+</head>
+<body>
+
+<h1>AlignmentUtils 테스트</h1>
+<p class="subtitle">alignment.js — 정렬 / 균등 배치 / 스냅 / 그리드 레이아웃 단위 테스트</p>
+
+<div id="summary" class="summary">
+  <div class="summary-item total"><strong id="total">0</strong><span>전체</span></div>
+  <div class="summary-item pass"><strong id="passed">0</strong><span>통과</span></div>
+  <div class="summary-item fail"><strong id="failed">0</strong><span>실패</span></div>
+</div>
+
+<div id="output"></div>
+
+<div class="canvas-wrap">
+  <div class="canvas-title">그리드 배치 시각화 (3열)</div>
+  <canvas id="vis" width="640" height="200"></canvas>
+</div>
+
+<script src="js/alignment.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  // ─── 테스트 러너 ─────────────────────────────────────────────────
+
+  var results = [];
+
+  function assert(condition, name, detail) {
+    results.push({ pass: !!condition, name: name, detail: detail || '' });
+  }
+
+  function assertClose(a, b, name, eps) {
+    eps = eps || 1e-9;
+    var ok = Math.abs(a - b) < eps;
+    assert(ok, name, ok ? 'OK' : ('expected ' + b.toFixed(6) + ' got ' + a.toFixed(6)));
+  }
+
+  // ─── 샘플 객체 팩토리 ────────────────────────────────────────────
+
+  function makeObj(id, x, y, w, h) {
+    return { id: id, rect: { x: x, y: y, w: w, h: h } };
+  }
+
+  // ─── 테스트 데이터 ───────────────────────────────────────────────
+
+  var A = makeObj('A', 0.05, 0.10, 0.20, 0.30);  // left=0.05, right=0.25, top=0.10, bottom=0.40
+  var B = makeObj('B', 0.30, 0.30, 0.15, 0.20);  // left=0.30, right=0.45, top=0.30, bottom=0.50
+  var C = makeObj('C', 0.60, 0.05, 0.25, 0.40);  // left=0.60, right=0.85, top=0.05, bottom=0.45
+  var objects = [A, B, C];
+
+  var AU = window.AlignmentUtils;
+
+  // ─── Suite 1: align_left ────────────────────────────────────────
+  var suite1 = (function () {
+    var res = AU.align_left(objects);
+    assertClose(res[0].rect.x, 0.05, 'align_left: A.x 변경 없음 (이미 최좌측)');
+    assertClose(res[1].rect.x, 0.05, 'align_left: B.x → 0.05');
+    assertClose(res[2].rect.x, 0.05, 'align_left: C.x → 0.05');
+    // 원본 불변 확인
+    assert(objects[1].rect.x === 0.30, 'align_left: 원본 B.x 불변');
+    // 크기 보존
+    assertClose(res[2].rect.w, C.rect.w, 'align_left: C.w 보존');
+    return '1.1 align_left';
+  })();
+
+  // ─── Suite 2: align_right ───────────────────────────────────────
+  (function () {
+    var res = AU.align_right(objects);
+    var anchor = 0.85; // C.right = max right
+    assertClose(res[0].rect.x, anchor - A.rect.w, 'align_right: A.x = anchor - A.w');
+    assertClose(res[1].rect.x, anchor - B.rect.w, 'align_right: B.x = anchor - B.w');
+    assertClose(res[2].rect.x, anchor - C.rect.w, 'align_right: C.x 변경 없음 (이미 최우측)');
+  })();
+
+  // ─── Suite 3: align_center_horizontal ──────────────────────────
+  (function () {
+    // union: left=0.05, right=0.85 → centerX = 0.45
+    var res = AU.align_center_horizontal(objects);
+    var cxAnchor = (0.05 + 0.85) / 2; // 0.45
+    assertClose(res[0].rect.x, cxAnchor - A.rect.w / 2, 'align_center_horizontal: A.x');
+    assertClose(res[1].rect.x, cxAnchor - B.rect.w / 2, 'align_center_horizontal: B.x');
+    assertClose(res[2].rect.x, cxAnchor - C.rect.w / 2, 'align_center_horizontal: C.x');
+  })();
+
+  // ─── Suite 4: align_top ─────────────────────────────────────────
+  (function () {
+    var res = AU.align_top(objects);
+    var anchor = 0.05; // C.top = min top
+    assertClose(res[0].rect.y, anchor, 'align_top: A.y → 0.05');
+    assertClose(res[1].rect.y, anchor, 'align_top: B.y → 0.05');
+    assertClose(res[2].rect.y, anchor, 'align_top: C.y 변경 없음 (이미 최상단)');
+  })();
+
+  // ─── Suite 5: align_bottom ──────────────────────────────────────
+  (function () {
+    var res = AU.align_bottom(objects);
+    // bottoms: A=0.40, B=0.50, C=0.45 → max=0.50 (B)
+    var anchor = 0.50;
+    assertClose(res[0].rect.y, anchor - A.rect.h, 'align_bottom: A.y = anchor - A.h');
+    assertClose(res[1].rect.y, anchor - B.rect.h, 'align_bottom: B.y 변경 없음 (이미 최하단)');
+    assertClose(res[2].rect.y, anchor - C.rect.h, 'align_bottom: C.y = anchor - C.h');
+  })();
+
+  // ─── Suite 6: align_middle_vertical ────────────────────────────
+  (function () {
+    var res = AU.align_middle_vertical(objects);
+    // union: top=0.05, bottom=0.50 → centerY = 0.275
+    var cyAnchor = (0.05 + 0.50) / 2;
+    assertClose(res[0].rect.y, cyAnchor - A.rect.h / 2, 'align_middle_vertical: A.y');
+    assertClose(res[1].rect.y, cyAnchor - B.rect.h / 2, 'align_middle_vertical: B.y');
+    assertClose(res[2].rect.y, cyAnchor - C.rect.h / 2, 'align_middle_vertical: C.y');
+  })();
+
+  // ─── Suite 7: distribute_horizontal ────────────────────────────
+  (function () {
+    var res = AU.distribute_horizontal(objects);
+    // sorted by x: A(0.05), B(0.30), C(0.60)
+    // totalSpan = C.right - A.left = 0.85 - 0.05 = 0.80
+    // totalW = 0.20 + 0.15 + 0.25 = 0.60
+    // gap = (0.80 - 0.60) / 2 = 0.10
+    // A→0.05, B→0.05+0.20+0.10=0.35, C→0.35+0.15+0.10=0.60
+    var sorted = res.slice().sort(function(a,b){ return a.rect.x - b.rect.x; });
+    assertClose(sorted[0].rect.x, 0.05, 'distribute_h: 첫 번째 객체 고정 (A.x=0.05)');
+    assertClose(sorted[1].rect.x, 0.35, 'distribute_h: 중간 객체 균등 배치 (B.x=0.35)');
+    assertClose(sorted[2].rect.x, 0.60, 'distribute_h: 마지막 객체 고정 (C.x=0.60)');
+    // 크기 보존
+    assertClose(sorted[0].rect.w, A.rect.w, 'distribute_h: 크기 보존');
+  })();
+
+  // ─── Suite 8: distribute_vertical ──────────────────────────────
+  (function () {
+    var res = AU.distribute_vertical(objects);
+    // sorted by y: C(0.05), A(0.10), B(0.30)
+    // totalSpan = B.bottom - C.top = 0.50 - 0.05 = 0.45
+    // totalH = 0.40 + 0.30 + 0.20 = 0.90  → gap = (0.45-0.90)/2 = -0.225 (객체가 겹침 → 음수 gap)
+    // 음수 gap도 수식상 올바르게 동작해야 합니다
+    var sorted = res.slice().sort(function(a,b){ return a.rect.y - b.rect.y; });
+    // 첫/마지막 y값 고정 확인
+    assertClose(sorted[0].rect.y, 0.05, 'distribute_v: 첫 번째 객체 y 고정 (C.y=0.05)');
+    assertClose(sorted[sorted.length-1].rect.y + sorted[sorted.length-1].rect.h, 0.50,
+      'distribute_v: 마지막 객체 하단 고정 (B.bottom=0.50)');
+    assert(objects[0].rect.y === 0.10, 'distribute_v: 원본 불변');
+  })();
+
+  // ─── Suite 9: distribute - 2개 이하 ────────────────────────────
+  (function () {
+    var two = [A, B];
+    var res = AU.distribute_horizontal(two);
+    assert(res.length === 2, 'distribute_h 2개: 배열 길이 유지');
+    assertClose(res[0].rect.x, A.rect.x, 'distribute_h 2개: 원본 좌표 복사');
+    assert(res[0] !== A, 'distribute_h 2개: 복사본 반환 (원본 참조 아님)');
+  })();
+
+  // ─── Suite 10: snap_to_guides ───────────────────────────────────
+  (function () {
+    // 캔버스 800×450, SNAP=8px → normX=0.01, normY=0.0177...
+    var guides = AU.computeGuides([A]);
+    // A.left=0.05, A.centerX=0.15, A.right=0.25
+
+    // 왼쪽 가장자리가 A.right(0.25)에서 normX 이내로 근접 → 스냅되어야 함
+    var r1 = { x: 0.255, y: 0.5, w: 0.1, h: 0.1 }; // 0.255 vs guide 0.25, diff=0.005 < 0.01
+    var snapped1 = AU.snap_to_guides(r1, guides, 800, 450);
+    assertClose(snapped1.x, 0.25, 'snap: x → A.right(0.25) 스냅');
+
+    // 임계값 밖 → 스냅 안 됨
+    var r2 = { x: 0.35, y: 0.5, w: 0.1, h: 0.1 }; // diff=0.10 >> 0.01
+    var snapped2 = AU.snap_to_guides(r2, guides, 800, 450);
+    assertClose(snapped2.x, 0.35, 'snap: 임계값 초과 시 스냅 안 됨');
+
+    // y 스냅: A.top=0.10에 rect.bottom이 근접 → 스냅
+    var r3 = { x: 0.5, y: 0.081, w: 0.1, h: 0.02 }; // bottom=0.101, A.top=0.10, diff=0.001
+    var snapped3 = AU.snap_to_guides(r3, guides, 800, 450);
+    // bottom snap → y = A.top - h = 0.10 - 0.02 = 0.08
+    assertClose(snapped3.y, 0.10 - 0.02, 'snap: y → A.top(0.10) 기준 bottom 스냅');
+  })();
+
+  // ─── Suite 11: auto_grid_layout ─────────────────────────────────
+  (function () {
+    // 6개 객체, 3열, containerWidth=1.0, paddingX/Y=0.01
+    var items = [
+      makeObj('g0', 0,0, 0.2, 0.2), makeObj('g1', 0,0, 0.2, 0.2), makeObj('g2', 0,0, 0.2, 0.2),
+      makeObj('g3', 0,0, 0.2, 0.2), makeObj('g4', 0,0, 0.2, 0.2), makeObj('g5', 0,0, 0.2, 0.2),
+    ];
+    var res = AU.auto_grid_layout(items, 1.0, 3, { paddingX: 0.01, paddingY: 0.01 });
+
+    // cellW = (1.0 - 0.01*2) / 3 = 0.98/3 ≈ 0.3267
+    var cellW = (1.0 - 0.01 * 2) / 3;
+
+    // 행 0
+    assertClose(res[0].rect.x, 0 + (cellW - 0.2) / 2, 'grid: 0행 0열 x');
+    assertClose(res[1].rect.x, (cellW + 0.01) + (cellW - 0.2) / 2, 'grid: 0행 1열 x');
+    assertClose(res[2].rect.x, 2 * (cellW + 0.01) + (cellW - 0.2) / 2, 'grid: 0행 2열 x');
+
+    // 행 1: y = 0 + rowH + paddingY = 0.20 + 0.01 = 0.21 (행 높이는 max(0.2)=0.2)
+    var row1Y = 0.20 + 0.01;
+    assertClose(res[3].rect.y, row1Y + (0.20 - 0.20) / 2, 'grid: 1행 0열 y');
+    assertClose(res[4].rect.y, row1Y + (0.20 - 0.20) / 2, 'grid: 1행 1열 y');
+
+    // 원본 불변
+    assert(items[0].rect.x === 0, 'grid: 원본 불변');
+    assert(res[0] !== items[0], 'grid: 복사본 반환');
+
+    // 크기 보존
+    assertClose(res[5].rect.w, 0.2, 'grid: 크기 보존 (w)');
+    assertClose(res[5].rect.h, 0.2, 'grid: 크기 보존 (h)');
+  })();
+
+  // ─── Suite 12: 빈 배열 / 단일 객체 엣지 케이스 ─────────────────
+  (function () {
+    assert(AU.align_left([]).length === 0, 'edge: 빈 배열 → 빈 배열 반환');
+    var single = [makeObj('s', 0.1, 0.2, 0.3, 0.4)];
+    var res = AU.align_left(single);
+    assert(res.length === 1, 'edge: 단일 객체 → 길이 1');
+    assertClose(res[0].rect.x, 0.1, 'edge: 단일 객체 좌표 유지');
+    assert(res[0] !== single[0], 'edge: 단일 객체도 복사본 반환');
+  })();
+
+  // ─── 결과 렌더링 ─────────────────────────────────────────────────
+
+  var suites = {
+    '1.1 align_left':              [0, 4],
+    '1.1 align_right':             [5, 7],
+    '1.1 align_center_horizontal': [8, 10],
+    '1.1 align_top':               [11, 13],
+    '1.1 align_bottom':            [14, 16],
+    '1.1 align_middle_vertical':   [17, 19],
+    '1.2 distribute_horizontal':   [20, 23],
+    '1.2 distribute_vertical':     [24, 27],
+    '1.2 distribute 2개 이하':     [28, 30],
+    '1.2 snap_to_guides':          [31, 34],
+    '1.3 auto_grid_layout':        [35, 42],
+    '엣지 케이스':                  [43, 46],
+  };
+
+  var totalPass = 0, totalFail = 0;
+  var out = document.getElementById('output');
+
+  // 스위트 경계를 결정하기 위해 순서대로 실행된 results를 그룹화
+  var suiteNames = Object.keys(suites);
+  var prev = 0;
+  suiteNames.forEach(function (name, si) {
+    var next = si < suiteNames.length - 1 ? suites[suiteNames[si + 1]][0] : results.length;
+    var slice = results.slice(prev, next);
+    prev = next;
+
+    var passed = slice.filter(function(r){ return r.pass; }).length;
+    var failed = slice.length - passed;
+    totalPass += passed;
+    totalFail += failed;
+
+    var div = document.createElement('div');
+    div.className = 'suite';
+
+    var header = document.createElement('div');
+    header.className = 'suite-header';
+    header.innerHTML =
+      '<span class="suite-name">' + name + '</span>' +
+      '<span class="suite-count">' + passed + '/' + slice.length + ' 통과' + (failed ? ' &nbsp;⚠ ' + failed + '개 실패' : '') + '</span>';
+    div.appendChild(header);
+
+    slice.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'test-row ' + (r.pass ? 'pass' : 'fail');
+      row.innerHTML =
+        '<div class="icon"></div>' +
+        '<div><div class="test-name">' + r.name + '</div>' +
+        (r.detail ? '<div class="test-detail">' + r.detail + '</div>' : '') + '</div>';
+      div.appendChild(row);
+    });
+
+    out.appendChild(div);
+  });
+
+  document.getElementById('total').textContent  = results.length;
+  document.getElementById('passed').textContent = totalPass;
+  document.getElementById('failed').textContent = totalFail;
+
+  // ─── 그리드 시각화 ────────────────────────────────────────────────
+
+  var canvas = document.getElementById('vis');
+  var ctx    = canvas.getContext('2d');
+  var W = canvas.width, H = canvas.height;
+  var PAD = 12;
+
+  var visItems = [];
+  for (var vi = 0; vi < 7; vi++) {
+    visItems.push(makeObj('v' + vi, 0, 0, 0.18 + (vi % 3) * 0.01, 0.28 + (vi % 2) * 0.06));
+  }
+
+  var grid = AU.auto_grid_layout(visItems, 1.0, 3, { paddingX: 0.02, paddingY: 0.03, originX: 0, originY: 0 });
+
+  var colors = ['#5b7de8','#e8855b','#5be8a0','#e8d45b','#c05be8','#5be8d4','#e85b8a'];
+
+  grid.forEach(function (obj, i) {
+    var x = PAD + obj.rect.x * (W - PAD * 2);
+    var y = PAD + obj.rect.y * (H - PAD * 2);
+    var w = obj.rect.w * (W - PAD * 2);
+    var h = obj.rect.h * (H - PAD * 2);
+    ctx.fillStyle = colors[i % colors.length] + '55';
+    ctx.strokeStyle = colors[i % colors.length];
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.roundRect(x, y, w, h, 3);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.font = '11px JetBrains Mono, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(obj.id, x + w / 2, y + h / 2);
+  });
+
+})();
+</script>
+</body>
+</html>
