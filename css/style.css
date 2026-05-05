@@ -923,6 +923,12 @@ img {
   outline-offset: 0;
 }
 
+.placed-item--multi-selected,
+.placed-item--multi-selected:hover {
+  outline: 2px dashed var(--warning);
+  outline-offset: 0;
+}
+
 .resize-handle {
   position: absolute;
   width: 10px;

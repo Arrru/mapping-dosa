@@ -297,6 +297,7 @@ window.TimelinePanel = (() => {
       html += buildNumberInput('rect_w', 'W (0~1)', r.w, 0.01);
       html += buildNumberInput('rect_h', 'H (0~1)', r.h, 0.01);
       html += buildNumberInput('z', 'Z (레이어)', event.z != null ? event.z : 20, 1);
+      html += buildBatchSizeSection(r);
     }
 
     content.innerHTML = html;
@@ -306,6 +307,29 @@ window.TimelinePanel = (() => {
       el.addEventListener('input', debouncedSave);
       el.addEventListener('change', debouncedSave);
     });
+
+    // Place-specific: batch size apply
+    if (event.type === 'place') {
+      const batchBtn = content.querySelector('#btn-batch-apply-size');
+      if (batchBtn) {
+        batchBtn.addEventListener('click', () => {
+          const wInput = content.querySelector('#batch-size-w');
+          const hInput = content.querySelector('#batch-size-h');
+          const newW = Math.max(0.02, Math.min(1, parseFloat(wInput.value) || 0.2));
+          const newH = Math.max(0.02, Math.min(1, parseFloat(hInput.value) || 0.2));
+          const ids = AppState.ui.selectedPlacedIds || [];
+          const targets = ids.length > 0
+            ? AppState.scene.events.filter(e => e.type === 'place' && ids.includes(e.item_id))
+            : AppState.scene.events.filter(e => e.type === 'place' && e.item_id === AppState.ui.selectedPlacedId);
+          if (targets.length === 0) return;
+          AppState.saveToHistory();
+          targets.forEach(e => { e.rect.w = newW; e.rect.h = newH; });
+          AppState.autosave();
+          EventBus.emit('preview:updated');
+          EventBus.emit('timeline:updated');
+        });
+      }
+    }
 
     // Choice-specific dynamic buttons
     if (event.type === 'choice') {
@@ -401,10 +425,35 @@ window.TimelinePanel = (() => {
   }
 
   function buildNumberInput(name, label, value, step) {
+    const displayVal = (typeof value === 'number' && step < 1) ? value.toFixed(4) : String(value);
     return `<div style="margin-bottom:12px;">
       <label style="display:block;font-size:12px;color:#a0aec0;margin-bottom:4px;">${escHtml(label)}</label>
-      <input type="number" name="${escHtml(name)}" value="${escHtml(String(value))}" step="${step}" min="0" max="1"
+      <input type="number" name="${escHtml(name)}" value="${escHtml(displayVal)}" step="${step}" min="0" max="1"
         style="width:100%;padding:6px 8px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:13px;box-sizing:border-box;">
+    </div>`;
+  }
+
+  function buildBatchSizeSection(currentRect) {
+    const selCount = (AppState.ui.selectedPlacedIds || []).length;
+    const count = Math.max(selCount, 1);
+    return `<div id="place-batch-size" style="margin-top:16px;padding-top:12px;border-top:1px solid #2d3748;">
+      <label style="display:block;font-size:11px;color:#6b7280;margin-bottom:8px;text-transform:uppercase;letter-spacing:.05em;">크기 일괄 변경</label>
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        <div style="flex:1;">
+          <label style="display:block;font-size:11px;color:#a0aec0;margin-bottom:3px;">W (0~1)</label>
+          <input type="number" id="batch-size-w" step="0.001" min="0.02" max="1" value="${currentRect.w.toFixed(4)}"
+            style="width:100%;padding:5px 7px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:12px;box-sizing:border-box;">
+        </div>
+        <div style="flex:1;">
+          <label style="display:block;font-size:11px;color:#a0aec0;margin-bottom:3px;">H (0~1)</label>
+          <input type="number" id="batch-size-h" step="0.001" min="0.02" max="1" value="${currentRect.h.toFixed(4)}"
+            style="width:100%;padding:5px 7px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:12px;box-sizing:border-box;">
+        </div>
+      </div>
+      <button id="btn-batch-apply-size"
+        style="width:100%;padding:7px 10px;background:#2d3748;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;cursor:pointer;font-size:12px;transition:background .15s;">
+        선택된 <span id="batch-size-count">${count}</span>개 항목에 크기 적용
+      </button>
     </div>`;
   }
 

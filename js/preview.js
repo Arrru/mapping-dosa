@@ -119,13 +119,18 @@ window.PreviewPanel = (() => {
 
     const placeEvents = AppState.scene.events.filter(e => e.type === 'place');
     const selectedId = AppState.ui.selectedPlacedId;
+    const multiIds = AppState.ui.selectedPlacedIds || [];
 
     placeEvents.forEach((event) => {
       const itemId = event.item_id;
       const rect = event.rect || { x: 0.1, y: 0.1, w: 0.2, h: 0.2 };
 
       const div = document.createElement('div');
-      div.className = 'placed-item' + (selectedId === itemId ? ' placed-item--selected' : '');
+      const isPrimary = selectedId === itemId;
+      const isMulti = !isPrimary && multiIds.includes(itemId);
+      div.className = 'placed-item'
+        + (isPrimary ? ' placed-item--selected' : '')
+        + (isMulti   ? ' placed-item--multi-selected' : '');
       div.dataset.itemId = itemId;
       div.style.left   = (rect.x * 100) + '%';
       div.style.top    = (rect.y * 100) + '%';
@@ -169,8 +174,9 @@ window.PreviewPanel = (() => {
       div.addEventListener('mousedown', (e) => {
         if (e.target.classList.contains('resize-handle') || e.target.classList.contains('placed-item__delete')) return;
         e.stopPropagation();
-        selectPlacedItem(itemId);
-        startDrag(e, event);
+        const isMulti = e.ctrlKey || e.metaKey;
+        selectPlacedItem(itemId, isMulti);
+        if (!isMulti) startDrag(e, event);
       });
 
       layer.appendChild(div);
@@ -342,20 +348,33 @@ window.PreviewPanel = (() => {
     if (AppState.ui.selectedPlacedId === itemId) {
       AppState.ui.selectedPlacedId = null;
     }
+    AppState.ui.selectedPlacedIds = (AppState.ui.selectedPlacedIds || []).filter(id => id !== itemId);
     AppState.autosave();
     EventBus.emit('timeline:updated');
     EventBus.emit('preview:updated');
   }
 
-  function selectPlacedItem(itemId) {
+  function selectPlacedItem(itemId, isMulti) {
+    if (isMulti) {
+      const ids = AppState.ui.selectedPlacedIds || [];
+      const idx = ids.indexOf(itemId);
+      if (idx === -1) {
+        AppState.ui.selectedPlacedIds = [...ids, itemId];
+      } else {
+        AppState.ui.selectedPlacedIds = ids.filter(id => id !== itemId);
+      }
+    } else {
+      AppState.ui.selectedPlacedIds = [itemId];
+    }
     AppState.ui.selectedPlacedId = itemId;
     AppState.ui.selectedEventIndex = null;
     renderPlacedItems();
   }
 
   function deselectPlaced() {
-    if (AppState.ui.selectedPlacedId == null) return;
+    if (AppState.ui.selectedPlacedId == null && (AppState.ui.selectedPlacedIds || []).length === 0) return;
     AppState.ui.selectedPlacedId = null;
+    AppState.ui.selectedPlacedIds = [];
     renderPlacedItems();
   }
 

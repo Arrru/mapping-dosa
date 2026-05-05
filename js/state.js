@@ -42,6 +42,7 @@ window.AppState = (() => {
       activeAssetTab: 'backgrounds',
       selectedEventIndex: null,
       selectedPlacedId: null,
+      selectedPlacedIds: [],
       recentAssets: [],
       isLoading: false,
       loadingMessage: '',
