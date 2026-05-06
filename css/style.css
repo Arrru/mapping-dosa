@@ -1968,3 +1968,10 @@ img {
 .timeline-event.tl-multi-selected {
   box-shadow: inset 0 0 0 1px var(--warning-dim);
 }
+
+/* 그룹 헤더 드래그 드롭 대상 강조 */
+.tl-group-header.tl-group-drop-target {
+  background: #1a3a4a !important;
+  outline: 2px dashed #4a90d9;
+  outline-offset: -2px;
+}

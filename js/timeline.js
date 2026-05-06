@@ -78,11 +78,15 @@ window.TimelinePanel = (() => {
     const groupBtn = document.getElementById('btn-group-selected');
     if (groupBtn) {
       groupBtn.addEventListener('click', () => {
-        const sel = AppState.ui.selectedEventIndices || [];
-        if (sel.length < 2) { alert('2개 이상의 이벤트를 Ctrl+클릭으로 선택하세요.'); return; }
+        let sel = AppState.ui.selectedEventIndices || [];
+        if (sel.length === 0) {
+          const single = AppState.ui.selectedEventIndex;
+          if (single !== null && single !== undefined) sel = [single];
+        }
+        if (sel.length === 0) return;
         const name = prompt('그룹 이름', '새 그룹');
         if (name === null) return;
-        if (window.TimelineGroups) TimelineGroups.group_selected_items(name || '새 그룹');
+        if (window.TimelineGroups) TimelineGroups.group_selected_items(name || '새 그룹', sel);
       });
     }
 
@@ -107,7 +111,8 @@ window.TimelinePanel = (() => {
     const groupBtn = document.getElementById('btn-group-selected');
     if (groupBtn) {
       const selCount = (AppState.ui.selectedEventIndices || []).length;
-      groupBtn.disabled = selCount < 2;
+      const hasSingle = AppState.ui.selectedEventIndex !== null && AppState.ui.selectedEventIndex !== undefined;
+      groupBtn.disabled = selCount === 0 && !hasSingle;
     }
 
     if (events.length === 0) {
@@ -847,18 +852,30 @@ window.TimelinePanel = (() => {
         el.style.borderTop = '';
         el.style.borderBottom = '';
       });
+      list.querySelectorAll('li[data-group-id]').forEach((el) => {
+        el.classList.remove('tl-group-drop-target');
+      });
       dragIndex = null;
     });
 
     list.addEventListener('dragover', (e) => {
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
-      const li = e.target.closest('li[data-index]');
-      if (!li) return;
       list.querySelectorAll('li[data-index]').forEach((el) => {
         el.style.borderTop = '';
         el.style.borderBottom = '';
       });
+      list.querySelectorAll('li[data-group-id]').forEach((el) => {
+        el.classList.remove('tl-group-drop-target');
+      });
+      const groupLi = e.target.closest('li[data-group-id]');
+      if (groupLi) {
+        const draggedEvent = dragIndex !== null ? AppState.scene.events[dragIndex] : null;
+        if (draggedEvent && !draggedEvent.groupId) groupLi.classList.add('tl-group-drop-target');
+        return;
+      }
+      const li = e.target.closest('li[data-index]');
+      if (!li) return;
       const rect = li.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
       if (e.clientY < midY) {
@@ -869,6 +886,8 @@ window.TimelinePanel = (() => {
     });
 
     list.addEventListener('dragleave', (e) => {
+      const groupLi = e.target.closest('li[data-group-id]');
+      if (groupLi) { groupLi.classList.remove('tl-group-drop-target'); return; }
       const li = e.target.closest('li[data-index]');
       if (li) {
         li.style.borderTop = '';
@@ -879,8 +898,21 @@ window.TimelinePanel = (() => {
     list.addEventListener('drop', (e) => {
       e.preventDefault();
       if (dragIndex === null) return;
+      const groupLi = e.target.closest('li[data-group-id]');
+      if (groupLi) {
+        groupLi.classList.remove('tl-group-drop-target');
+        const evt = AppState.scene.events[dragIndex];
+        if (evt && !evt.groupId) {
+          AppState.saveToHistory();
+          evt.groupId = groupLi.dataset.groupId;
+          AppState.autosave();
+          EventBus.emit('timeline:updated');
+        }
+        dragIndex = null;
+        return;
+      }
       const li = e.target.closest('li[data-index]');
-      if (!li) return;
+      if (!li) { dragIndex = null; return; }
       const dropTarget = parseInt(li.dataset.index, 10);
       const rect = li.getBoundingClientRect();
       const midY = rect.top + rect.height / 2;
