@@ -13,6 +13,7 @@ window.PreviewPanel = (() => {
   };
 
   let charOptionsPopup = null;
+  let _clipboard = null;
 
   function init() {
     const container = document.getElementById('preview-container');
@@ -47,7 +48,38 @@ window.PreviewPanel = (() => {
     });
 
     document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') deselectPlaced();
+      if (e.key === 'Escape') { deselectPlaced(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'c') {
+        const selId = AppState.ui.selectedPlacedId;
+        if (selId) {
+          const src = AppState.scene.events.find(ev => ev.type === 'place' && ev.item_id === selId);
+          if (src) { _clipboard = { ...src, rect: { ...src.rect } }; e.preventDefault(); }
+        }
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'v') {
+        if (_clipboard) {
+          e.preventDefault();
+          const newItemId = 'pi_' + Utils.generateId();
+          const newEvent = {
+            ..._clipboard,
+            id: Utils.generateId(),
+            item_id: newItemId,
+            locked: false,
+            rect: {
+              x: Math.min(0.9, _clipboard.rect.x + 0.02),
+              y: Math.min(0.9, _clipboard.rect.y + 0.02),
+              w: _clipboard.rect.w,
+              h: _clipboard.rect.h,
+            },
+          };
+          AppState.saveToHistory();
+          AppState.scene.events.push(newEvent);
+          AppState.autosave();
+          selectPlacedItem(newItemId);
+          EventBus.emit('timeline:updated');
+          EventBus.emit('preview:updated');
+        }
+      }
     });
 
     container.addEventListener('mousedown', (e) => {
@@ -128,9 +160,11 @@ window.PreviewPanel = (() => {
       const div = document.createElement('div');
       const isPrimary = selectedId === itemId;
       const isMulti = !isPrimary && multiIds.includes(itemId);
+      const isLocked = !!event.locked;
       div.className = 'placed-item'
         + (isPrimary ? ' placed-item--selected' : '')
-        + (isMulti   ? ' placed-item--multi-selected' : '');
+        + (isMulti   ? ' placed-item--multi-selected' : '')
+        + (isLocked  ? ' placed-item--locked' : '');
       div.dataset.itemId = itemId;
       div.style.left   = (rect.x * 100) + '%';
       div.style.top    = (rect.y * 100) + '%';
@@ -147,7 +181,7 @@ window.PreviewPanel = (() => {
         div.appendChild(img);
       }
 
-      if (selectedId === itemId) {
+      if (selectedId === itemId && !isLocked) {
         ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].forEach((dir) => {
           const handle = document.createElement('div');
           handle.className = `resize-handle resize-handle--${dir}`;
@@ -172,11 +206,22 @@ window.PreviewPanel = (() => {
       }
 
       div.addEventListener('mousedown', (e) => {
+        if (event.locked) return;
         if (e.target.classList.contains('resize-handle') || e.target.classList.contains('placed-item__delete')) return;
         e.stopPropagation();
-        const isMulti = e.ctrlKey || e.metaKey;
-        selectPlacedItem(itemId, isMulti);
-        if (!isMulti) startDrag(e, event);
+        const isMultiKey = e.ctrlKey || e.metaKey;
+        const currentMultiIds = AppState.ui.selectedPlacedIds || [];
+        const alreadyMultiSelected = currentMultiIds.length > 1 && currentMultiIds.includes(itemId);
+        if (isMultiKey) {
+          selectPlacedItem(itemId, true);
+        } else if (alreadyMultiSelected) {
+          AppState.ui.selectedPlacedId = itemId;
+          renderPlacedItems();
+          startDrag(e, event);
+        } else {
+          selectPlacedItem(itemId, false);
+          startDrag(e, event);
+        }
       });
 
       layer.appendChild(div);
@@ -386,18 +431,23 @@ window.PreviewPanel = (() => {
     const cr = _getContainerRect();
     const startX = e.clientX;
     const startY = e.clientY;
-    const origRect = { ...event.rect };
+
+    const multiIds = AppState.ui.selectedPlacedIds || [];
+    const allIds = multiIds.length > 1 ? multiIds : [event.item_id];
+    const draggedEvents = AppState.scene.events.filter(ev =>
+      ev.type === 'place' && allIds.includes(ev.item_id) && !ev.locked
+    );
+    const origRects = draggedEvents.map(ev => ({ ...ev.rect }));
     let saved = false;
 
     function onMove(ev) {
-      if (!saved) {
-        AppState.saveToHistory();
-        saved = true;
-      }
+      if (!saved) { AppState.saveToHistory(); saved = true; }
       const dx = (ev.clientX - startX) / cr.width;
       const dy = (ev.clientY - startY) / cr.height;
-      event.rect.x = Math.max(0, Math.min(1 - event.rect.w, origRect.x + dx));
-      event.rect.y = Math.max(0, Math.min(1 - event.rect.h, origRect.y + dy));
+      draggedEvents.forEach((evt, i) => {
+        evt.rect.x = Math.max(0, Math.min(1 - evt.rect.w, origRects[i].x + dx));
+        evt.rect.y = Math.max(0, Math.min(1 - evt.rect.h, origRects[i].y + dy));
+      });
       renderPlacedItems();
     }
 

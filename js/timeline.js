@@ -413,9 +413,13 @@ window.TimelinePanel = (() => {
 
     const debouncedSave = Utils.debounce(() => saveEventFromEditor(index), 300);
 
+    const _lockedCb = event.type === 'place'
+      ? `<label style="margin-left:auto;display:inline-flex;align-items:center;gap:5px;cursor:pointer;font-size:12px;color:#a0aec0;"><input type="checkbox" name="locked"${event.locked ? ' checked' : ''} style="accent-color:#e53e3e;width:13px;height:13px;"> 이미지 고정</label>`
+      : '';
     let html = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #4a5568;">
       <span style="font-size:18px">${cfg.icon}</span>
       <span style="font-size:14px;font-weight:600;color:#e2e8f0;">${cfg.label}</span>
+      ${_lockedCb}
     </div>`;
 
     if (event.type === 'background') {
@@ -820,6 +824,7 @@ window.TimelinePanel = (() => {
         if (!isNaN(rh)) event.rect.h = Math.max(0.02, Math.min(1, rh));
         const zv = parseFloat(get('z'));
         if (!isNaN(zv)) event.z = zv;
+        event.locked = get('locked') === true;
         break;
       }
     }
