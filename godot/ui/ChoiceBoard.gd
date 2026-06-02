@@ -38,11 +38,14 @@ func _ready() -> void:
 	_bg.patch_margin_bottom = 32
 	add_child(_bg)
 
+	# _vbox is a sibling of _bg (not a child) — NinePatchRect is not a Container
+	# and does not manage child layout. Both share the same PRESET_FULL_RECT
+	# so _vbox renders on top of _bg within the same bounds.
 	_vbox = VBoxContainer.new()
 	_vbox.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	_vbox.add_theme_constant_override("separation", 16)
-	_bg.add_child(_vbox)
+	add_child(_vbox)
 
 ## Call after add_child(). Populates the board with choices.
 ## bg_texture  : NinePatchRect background (nil → semi-transparent fallback)

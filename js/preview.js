@@ -238,13 +238,21 @@ window.PreviewPanel = (() => {
     return all.find(a => a.id === id) || null;
   }
 
-  function renderChoiceBoardOverlay(rawUrl) {
+  function renderChoiceBoardOverlay(choiceEvent) {
     const container = document.getElementById('preview-container');
     let board = container.querySelector('.preview-choice-board');
-    if (!rawUrl) {
+
+    if (!choiceEvent) {
       if (board) board.remove();
       return;
     }
+
+    const bgAsset = findAssetById(choiceEvent.bg_image);
+    if (!bgAsset || !bgAsset.rawUrl) {
+      if (board) board.remove();
+      return;
+    }
+
     if (!board) {
       board = document.createElement('div');
       board.className = 'preview-choice-board';
@@ -252,10 +260,51 @@ window.PreviewPanel = (() => {
       container.insertBefore(board, dialogueBox);
     }
     board.innerHTML = '';
-    const img = document.createElement('img');
-    img.src = rawUrl;
-    img.alt = '';
-    board.appendChild(img);
+
+    // Background image — determines the board's displayed size
+    const bgImg = document.createElement('img');
+    bgImg.src = bgAsset.rawUrl;
+    bgImg.className = 'choice-board-bg';
+    bgImg.alt = '';
+    board.appendChild(bgImg);
+
+    // Content layer (prompt + options) overlaid on top of the background
+    const content = document.createElement('div');
+    content.className = 'choice-board-content';
+
+    if (choiceEvent.prompt) {
+      const promptEl = document.createElement('div');
+      promptEl.className = 'choice-board-prompt';
+      promptEl.textContent = choiceEvent.prompt;
+      content.appendChild(promptEl);
+    }
+
+    const optsList = document.createElement('div');
+    optsList.className = 'choice-board-options';
+    (choiceEvent.options || []).forEach((opt) => {
+      const item = document.createElement('div');
+      item.className = 'choice-board-item';
+
+      if (opt.image) {
+        const imgAsset = findAssetById(opt.image);
+        if (imgAsset && imgAsset.rawUrl) {
+          const optImg = document.createElement('img');
+          optImg.src = imgAsset.rawUrl;
+          optImg.className = 'choice-board-item-img';
+          optImg.alt = opt.text || '';
+          item.appendChild(optImg);
+        }
+      }
+
+      const textEl = document.createElement('span');
+      textEl.className = 'choice-board-item-text';
+      textEl.textContent = opt.text || '(빈 선택지)';
+      item.appendChild(textEl);
+
+      optsList.appendChild(item);
+    });
+    content.appendChild(optsList);
+    board.appendChild(content);
   }
 
   function renderDialogue() {
@@ -329,33 +378,38 @@ window.PreviewPanel = (() => {
       speakerEl.textContent = lastRelevant.speaker || '';
       textEl.textContent = lastRelevant.text || '';
     } else if (lastRelevant.type === 'choice') {
-      textEl.style.display = 'none';
-      speakerEl.textContent = lastRelevant.prompt || '';
-
       const bgAsset = findAssetById(lastRelevant.bg_image);
-      renderChoiceBoardOverlay(bgAsset && bgAsset.rawUrl ? bgAsset.rawUrl : null);
-
-      choicesEl.style.display = '';
-      const options = lastRelevant.options || [];
-      options.forEach((opt) => {
-        const btn = document.createElement('button');
-        btn.className = 'choice-btn';
-        if (opt.image) {
-          const imgAsset = findAssetById(opt.image);
-          if (imgAsset && imgAsset.rawUrl) {
-            btn.classList.add('choice-btn--has-image');
-            const img = document.createElement('img');
-            img.src = imgAsset.rawUrl;
-            img.className = 'choice-btn-img';
-            img.alt = opt.text || '';
-            btn.appendChild(img);
+      if (bgAsset && bgAsset.rawUrl) {
+        // Board mode: render everything inside the overlay, hide dialogue box
+        renderChoiceBoardOverlay(lastRelevant);
+        dialogueBox.style.display = 'none';
+      } else {
+        // No background image: fall back to dialogue box with plain choice buttons
+        renderChoiceBoardOverlay(null);
+        dialogueBox.style.display = '';
+        textEl.style.display = 'none';
+        speakerEl.textContent = lastRelevant.prompt || '';
+        choicesEl.style.display = '';
+        (lastRelevant.options || []).forEach((opt) => {
+          const btn = document.createElement('button');
+          btn.className = 'choice-btn';
+          if (opt.image) {
+            const imgAsset = findAssetById(opt.image);
+            if (imgAsset && imgAsset.rawUrl) {
+              btn.classList.add('choice-btn--has-image');
+              const img = document.createElement('img');
+              img.src = imgAsset.rawUrl;
+              img.className = 'choice-btn-img';
+              img.alt = opt.text || '';
+              btn.appendChild(img);
+            }
           }
-        }
-        const textSpan = document.createElement('span');
-        textSpan.textContent = opt.text || '(빈 선택지)';
-        btn.appendChild(textSpan);
-        choicesEl.appendChild(btn);
-      });
+          const textSpan = document.createElement('span');
+          textSpan.textContent = opt.text || '(빈 선택지)';
+          btn.appendChild(textSpan);
+          choicesEl.appendChild(btn);
+        });
+      }
     }
   }
 
