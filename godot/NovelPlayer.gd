@@ -210,30 +210,32 @@ func handle_choice(event: Dictionary) -> void:
 	if speaker_label:
 		speaker_label.text = ""
 
-	if choice_container == null:
-		return
+	# Remove any leftover board from a previous choice
+	var old := get_node_or_null("_ChoiceBoard")
+	if old:
+		old.queue_free()
 
-	# Clear previous buttons
-	for child in choice_container.get_children():
-		child.queue_free()
+	var board := ChoiceBoard.new()
+	board.name = "_ChoiceBoard"
+	add_child(board)
 
-	choice_container.show()
+	# Load board background texture if path is provided
+	var bg_path: String = event.get("bg_image_path", "")
+	var bg_tex: Texture2D = null
+	if bg_path != "" and ResourceLoader.exists(bg_path):
+		bg_tex = load(bg_path)
+
+	board.setup(event.get("options", []), bg_tex)
+	board.choice_confirmed.connect(_on_board_confirmed)
 	_waiting_for_choice = true
 
-	var options: Array = event.get("options", [])
-	for option in options:
-		var btn := Button.new()
-		btn.text = option.get("text", "")
-		btn.pressed.connect(func(): on_choice_selected(option))
-		choice_container.add_child(btn)
+
+func _on_board_confirmed(option: Dictionary) -> void:
+	on_choice_selected(option)
 
 
 func on_choice_selected(option: Dictionary) -> void:
 	_waiting_for_choice = false
-	if choice_container:
-		choice_container.hide()
-		for child in choice_container.get_children():
-			child.queue_free()
 
 	var next: String = option.get("next_scene", "")
 	var var_set = option.get("variable_set", null)

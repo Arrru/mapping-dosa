@@ -798,14 +798,21 @@ window.TimelinePanel = (() => {
         break;
       case 'choice': {
         event.prompt = get('prompt') || '';
-        event.bg_image = get('bg_image') || null;
+        const bgImageId = get('bg_image') || null;
+        event.bg_image = bgImageId;
+        const bgAsset = bgImageId ? AppState.assets.backgrounds.find(a => a.id === bgImageId) : null;
+        event.bg_image_path = bgAsset ? (bgAsset.resPath || '') : '';
+        const allImgs = (AppState.assets.ui || []).concat(AppState.assets.backgrounds || []);
         const options = [];
         let i = 0;
         while (content.querySelector(`[name="choice_text_${i}"]`)) {
+          const imgId = get(`choice_img_${i}`) || null;
+          const imgAsset = imgId ? allImgs.find(a => a.id === imgId) : null;
           options.push({
             text: get(`choice_text_${i}`) || '',
             next_scene: get(`choice_next_${i}`) || '',
-            image: get(`choice_img_${i}`) || null,
+            image: imgId,
+            image_path: imgAsset ? (imgAsset.resPath || '') : '',
           });
           i++;
         }
