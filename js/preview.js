@@ -238,6 +238,26 @@ window.PreviewPanel = (() => {
     return all.find(a => a.id === id) || null;
   }
 
+  function renderChoiceBoardOverlay(rawUrl) {
+    const container = document.getElementById('preview-container');
+    let board = container.querySelector('.preview-choice-board');
+    if (!rawUrl) {
+      if (board) board.remove();
+      return;
+    }
+    if (!board) {
+      board = document.createElement('div');
+      board.className = 'preview-choice-board';
+      const dialogueBox = document.getElementById('preview-dialogue-box');
+      container.insertBefore(board, dialogueBox);
+    }
+    board.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = rawUrl;
+    img.alt = '';
+    board.appendChild(img);
+  }
+
   function renderDialogue() {
     const dialogueBox = document.getElementById('preview-dialogue-box');
     const speakerEl = document.getElementById('preview-speaker-name');
@@ -269,6 +289,7 @@ window.PreviewPanel = (() => {
 
     choicesEl.innerHTML = '';
     if (!lastRelevant) {
+      renderChoiceBoardOverlay(null);
       dialogueBox.style.display = 'none';
       return;
     }
@@ -276,6 +297,7 @@ window.PreviewPanel = (() => {
     if (lastRelevant.type === 'dialogue') {
       const style = lastRelevant.display_style || 'normal';
       if (style === 'bubble_left' || style === 'bubble_right') {
+        renderChoiceBoardOverlay(null);
         dialogueBox.style.display = 'none';
         const bubble = document.createElement('div');
         bubble.className = `preview-speech-bubble preview-speech-bubble--${style === 'bubble_left' ? 'left' : 'right'}`;
@@ -301,9 +323,7 @@ window.PreviewPanel = (() => {
     dialogueBox.style.display = '';
 
     if (lastRelevant.type === 'dialogue') {
-      dialogueBox.style.backgroundImage = '';
-      dialogueBox.style.backgroundSize = '';
-      dialogueBox.style.backgroundPosition = '';
+      renderChoiceBoardOverlay(null);
       choicesEl.style.display = 'none';
       textEl.style.display = '';
       speakerEl.textContent = lastRelevant.speaker || '';
@@ -312,22 +332,8 @@ window.PreviewPanel = (() => {
       textEl.style.display = 'none';
       speakerEl.textContent = lastRelevant.prompt || '';
 
-      if (lastRelevant.bg_image) {
-        const bgAsset = findAssetById(lastRelevant.bg_image);
-        if (bgAsset && bgAsset.rawUrl) {
-          dialogueBox.style.backgroundImage = `url('${bgAsset.rawUrl}'), linear-gradient(to top, rgba(8,10,18,0.96) 0%, rgba(12,14,22,0.92) 60%, rgba(15,17,27,0.7) 100%)`;
-          dialogueBox.style.backgroundSize = 'cover, cover';
-          dialogueBox.style.backgroundPosition = 'center, center';
-        } else {
-          dialogueBox.style.backgroundImage = '';
-          dialogueBox.style.backgroundSize = '';
-          dialogueBox.style.backgroundPosition = '';
-        }
-      } else {
-        dialogueBox.style.backgroundImage = '';
-        dialogueBox.style.backgroundSize = '';
-        dialogueBox.style.backgroundPosition = '';
-      }
+      const bgAsset = findAssetById(lastRelevant.bg_image);
+      renderChoiceBoardOverlay(bgAsset && bgAsset.rawUrl ? bgAsset.rawUrl : null);
 
       choicesEl.style.display = '';
       const options = lastRelevant.options || [];
