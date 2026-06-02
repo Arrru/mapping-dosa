@@ -228,6 +228,16 @@ window.PreviewPanel = (() => {
     });
   }
 
+  function findAssetById(id) {
+    if (!id) return null;
+    const all = [
+      ...(AppState.assets.backgrounds || []),
+      ...(AppState.assets.ui || []),
+      ...(AppState.assets.characters || []),
+    ];
+    return all.find(a => a.id === id) || null;
+  }
+
   function renderDialogue() {
     const dialogueBox = document.getElementById('preview-dialogue-box');
     const speakerEl = document.getElementById('preview-speaker-name');
@@ -291,6 +301,9 @@ window.PreviewPanel = (() => {
     dialogueBox.style.display = '';
 
     if (lastRelevant.type === 'dialogue') {
+      dialogueBox.style.backgroundImage = '';
+      dialogueBox.style.backgroundSize = '';
+      dialogueBox.style.backgroundPosition = '';
       choicesEl.style.display = 'none';
       textEl.style.display = '';
       speakerEl.textContent = lastRelevant.speaker || '';
@@ -298,12 +311,43 @@ window.PreviewPanel = (() => {
     } else if (lastRelevant.type === 'choice') {
       textEl.style.display = 'none';
       speakerEl.textContent = lastRelevant.prompt || '';
+
+      if (lastRelevant.bg_image) {
+        const bgAsset = findAssetById(lastRelevant.bg_image);
+        if (bgAsset && bgAsset.rawUrl) {
+          dialogueBox.style.backgroundImage = `url('${bgAsset.rawUrl}'), linear-gradient(to top, rgba(8,10,18,0.96) 0%, rgba(12,14,22,0.92) 60%, rgba(15,17,27,0.7) 100%)`;
+          dialogueBox.style.backgroundSize = 'cover, cover';
+          dialogueBox.style.backgroundPosition = 'center, center';
+        } else {
+          dialogueBox.style.backgroundImage = '';
+          dialogueBox.style.backgroundSize = '';
+          dialogueBox.style.backgroundPosition = '';
+        }
+      } else {
+        dialogueBox.style.backgroundImage = '';
+        dialogueBox.style.backgroundSize = '';
+        dialogueBox.style.backgroundPosition = '';
+      }
+
       choicesEl.style.display = '';
       const options = lastRelevant.options || [];
       options.forEach((opt) => {
         const btn = document.createElement('button');
         btn.className = 'choice-btn';
-        btn.textContent = opt.text || '(빈 선택지)';
+        if (opt.image) {
+          const imgAsset = findAssetById(opt.image);
+          if (imgAsset && imgAsset.rawUrl) {
+            btn.classList.add('choice-btn--has-image');
+            const img = document.createElement('img');
+            img.src = imgAsset.rawUrl;
+            img.className = 'choice-btn-img';
+            img.alt = opt.text || '';
+            btn.appendChild(img);
+          }
+        }
+        const textSpan = document.createElement('span');
+        textSpan.textContent = opt.text || '(빈 선택지)';
+        btn.appendChild(textSpan);
         choicesEl.appendChild(btn);
       });
     }

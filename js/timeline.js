@@ -391,7 +391,7 @@ window.TimelinePanel = (() => {
       character_hide:    { type, character_id: null },
       expression_change: { type, character_id: null, expression: 'normal', path: '' },
       dialogue:          { type, speaker: '', text: '', display_style: 'normal' },
-      choice:            { type, prompt: '', options: [{ text: '', next_scene: '' }] },
+      choice:            { type, prompt: '', bg_image: null, options: [{ text: '', next_scene: '', image: null }] },
       place:             { type, item_id: 'pi_' + id, asset_kind: 'image', asset_id: null, path: '', rawUrl: '', rect: { x: 0.3, y: 0.3, w: 0.2, h: 0.2 }, z: 20 },
     };
     const event = { id, ...(defaults[type] || { type }) };
@@ -446,6 +446,7 @@ window.TimelinePanel = (() => {
       html += buildTextarea('text', '대사', event.text || '');
     } else if (event.type === 'choice') {
       html += buildTextInput('prompt', '선택지 프롬프트', event.prompt || '');
+      html += buildAssetSelector('bg_image', '배경 이미지 (선택)', AppState.assets.backgrounds, event.bg_image);
       html += buildChoiceOptions(event.options || []);
     } else if (event.type === 'place') {
       html += buildPlaceKindSelector('asset_kind', event.asset_kind || 'image');
@@ -649,17 +650,29 @@ window.TimelinePanel = (() => {
   }
 
   function buildChoiceOptions(options) {
-    const rows = options.map((opt, i) => `
+    const allImages = (AppState.assets.ui || []).concat(AppState.assets.backgrounds || []);
+    const rows = options.map((opt, i) => {
+      const imgOpts = allImages.map((a) => {
+        const filename = Utils.getFilename(a.resPath || a.rawUrl || a.id || '');
+        const sel = a.id === opt.image ? ' selected' : '';
+        return `<option value="${escHtml(a.id)}"${sel}>${escHtml(filename)}</option>`;
+      }).join('');
+      return `
       <div class="choice-option-row" data-option-index="${i}" style="display:flex;gap:6px;margin-bottom:8px;align-items:flex-start;">
         <div style="flex:1;">
           <input type="text" name="choice_text_${i}" value="${escHtml(opt.text || '')}" placeholder="선택지 텍스트"
             style="width:100%;padding:5px 7px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:12px;box-sizing:border-box;margin-bottom:4px;">
           <input type="text" name="choice_next_${i}" value="${escHtml(opt.next_scene || '')}" placeholder="다음 장면 ID"
             list="scene-id-datalist"
-            style="width:100%;padding:5px 7px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:12px;box-sizing:border-box;">
+            style="width:100%;padding:5px 7px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:12px;box-sizing:border-box;margin-bottom:4px;">
+          <select name="choice_img_${i}" style="width:100%;padding:5px 7px;background:#1a202c;color:#e2e8f0;border:1px solid #4a5568;border-radius:4px;font-size:12px;">
+            <option value="">-- 이미지 없음 --</option>
+            ${imgOpts}
+          </select>
         </div>
         <button class="remove-option-btn" data-index="${i}" style="padding:4px 8px;background:#e53e3e;color:#fff;border:none;border-radius:4px;cursor:pointer;font-size:12px;flex-shrink:0;margin-top:2px;">×</button>
-      </div>`).join('');
+      </div>`;
+    }).join('');
 
     return `<div style="margin-bottom:12px;">
       <label style="display:block;font-size:12px;color:#a0aec0;margin-bottom:6px;">선택지 항목</label>
@@ -675,7 +688,7 @@ window.TimelinePanel = (() => {
         AppState.saveToHistory();
         const event = AppState.scene.events[index];
         event.options = event.options || [];
-        event.options.push({ text: '', next_scene: '' });
+        event.options.push({ text: '', next_scene: '', image: null });
         AppState.autosave();
         showEventEditor(index);
         EventBus.emit('timeline:updated');
@@ -785,12 +798,14 @@ window.TimelinePanel = (() => {
         break;
       case 'choice': {
         event.prompt = get('prompt') || '';
+        event.bg_image = get('bg_image') || null;
         const options = [];
         let i = 0;
         while (content.querySelector(`[name="choice_text_${i}"]`)) {
           options.push({
             text: get(`choice_text_${i}`) || '',
             next_scene: get(`choice_next_${i}`) || '',
+            image: get(`choice_img_${i}`) || null,
           });
           i++;
         }
